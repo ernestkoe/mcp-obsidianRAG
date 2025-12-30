@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "obsidian-memory"
+version = "0.1.0"
+description = "Vector store for Obsidian notes with MCP server"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "chromadb>=0.4.0",
+    "watchdog>=3.0.0",
+    "mcp>=1.0.0",
+    "httpx>=0.25.0",
+    "pyyaml>=6.0",
+    "click>=8.0.0",
+]
+
+[project.scripts]
+obsidian-memory = "obsidian_memory.cli:main"
+obsidian-memory-mcp = "obsidian_memory.server:run_server"
+
+[tool.obsidian-memory]
+vault_path = "/Users/ernestkoe/Documents/Brave Robot"
+data_path = "./data"
+ollama_url = "http://localhost:11434"
+embedding_model = "nomic-embed-text"
+exclude = ["attachments/**", ".obsidian/**", ".trash/**"]
