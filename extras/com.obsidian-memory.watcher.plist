@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd plist template for obsidian-memory watcher daemon.
+
+  To install manually:
+  1. Copy this file to ~/Library/LaunchAgents/
+  2. Edit the paths below to match your setup
+  3. Run: launchctl load ~/Library/LaunchAgents/com.obsidian-memory.watcher.plist
+
+  Or use the CLI:
+  uv run obsidian-memory install-service
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.obsidian-memory.watcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Update this path to your Python executable -->
+        <string>/usr/local/bin/python3</string>
+        <string>-m</string>
+        <string>obsidian_memory.watcher</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Update these paths to match your setup -->
+        <key>OBSIDIAN_MEMORY_VAULT</key>
+        <string>/path/to/your/obsidian/vault</string>
+        <key>OBSIDIAN_MEMORY_DATA</key>
+        <string>/path/to/obsidian-memory/data</string>
+        <key>OBSIDIAN_MEMORY_OLLAMA_URL</key>
+        <string>http://localhost:11434</string>
+        <key>OBSIDIAN_MEMORY_MODEL</key>
+        <string>nomic-embed-text</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/obsidian-memory.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/obsidian-memory.err</string>
+
+    <key>WorkingDirectory</key>
+    <string>/path/to/obsidian-memory</string>
+</dict>
+</plist>

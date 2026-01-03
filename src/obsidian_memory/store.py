@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import chromadb
 from chromadb.config import Settings
@@ -40,7 +40,7 @@ class VectorStore:
     def add_batch(
         self,
         chunks: List[Chunk],
-        embeddings: List[List[float]]
+        embeddings: Sequence[Sequence[float]]
     ) -> None:
         """Add multiple chunks to the store."""
         if not chunks:
@@ -48,7 +48,7 @@ class VectorStore:
 
         self.collection.add(
             ids=[c.id for c in chunks],
-            embeddings=embeddings,
+            embeddings=list(embeddings),  # type: ignore[arg-type]
             documents=[c.content for c in chunks],
             metadatas=[self._prepare_metadata(c) for c in chunks]
         )
@@ -65,7 +65,7 @@ class VectorStore:
     def upsert_batch(
         self,
         chunks: List[Chunk],
-        embeddings: List[List[float]]
+        embeddings: Sequence[Sequence[float]]
     ) -> None:
         """Add or update multiple chunks."""
         if not chunks:
@@ -73,7 +73,7 @@ class VectorStore:
 
         self.collection.upsert(
             ids=[c.id for c in chunks],
-            embeddings=embeddings,
+            embeddings=list(embeddings),  # type: ignore[arg-type]
             documents=[c.content for c in chunks],
             metadatas=[self._prepare_metadata(c) for c in chunks]
         )
@@ -108,12 +108,17 @@ class VectorStore:
         )
 
         output = []
-        for i in range(len(results["ids"][0])):
+        ids = results["ids"][0]
+        documents = results["documents"] or [[]]
+        metadatas = results["metadatas"] or [[]]
+        distances = results["distances"] or [[]]
+
+        for i in range(len(ids)):
             output.append({
-                "id": results["ids"][0][i],
-                "content": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
-                "distance": results["distances"][0][i]
+                "id": ids[i],
+                "content": documents[0][i] if documents[0] else "",
+                "metadata": metadatas[0][i] if metadatas[0] else {},
+                "distance": distances[0][i] if distances[0] else 0.0,
             })
 
         return output

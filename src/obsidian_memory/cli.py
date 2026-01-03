@@ -1,5 +1,7 @@
 """Command-line interface for obsidian-memory."""
 
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -7,6 +9,7 @@ import click
 
 from .indexer import OllamaEmbedder, VaultIndexer
 from .store import VectorStore
+from .watcher import VaultWatcher
 
 # Default configuration
 DEFAULT_VAULT = "/Users/ernestkoe/Documents/Brave Robot"
@@ -154,6 +157,168 @@ def stats(ctx):
     click.echo(f"Collection: {stats['collection']}")
     click.echo(f"Documents: {stats['count']}")
     click.echo(f"Data path: {stats['data_path']}")
+
+
+@main.command()
+@click.option("--debounce", default=2.0, help="Seconds to wait before processing changes")
+@click.pass_context
+def watch(ctx, debounce):
+    """Watch vault for changes and auto-reindex."""
+    vault_path = ctx.obj["vault"]
+    data_path = ctx.obj["data"]
+    ollama_url = ctx.obj["ollama_url"]
+    model = ctx.obj["model"]
+
+    click.echo(f"Watching vault: {vault_path}")
+    click.echo(f"Data path: {data_path}")
+    click.echo(f"Debounce: {debounce}s")
+    click.echo("Press Ctrl+C to stop.\n")
+
+    watcher = VaultWatcher(
+        vault_path=vault_path,
+        data_path=data_path,
+        ollama_url=ollama_url,
+        model=model,
+        debounce_delay=debounce,
+    )
+    watcher.run_forever()
+
+
+# launchd service management
+PLIST_NAME = "com.obsidian-memory.watcher.plist"
+LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+
+
+def _get_plist_content(vault_path: str, data_path: str, ollama_url: str, model: str) -> str:
+    """Generate launchd plist content."""
+    # Find the obsidian-memory-watch executable
+    import sys
+    python_path = sys.executable
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.obsidian-memory.watcher</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{python_path}</string>
+        <string>-m</string>
+        <string>obsidian_memory.watcher</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OBSIDIAN_MEMORY_VAULT</key>
+        <string>{vault_path}</string>
+        <key>OBSIDIAN_MEMORY_DATA</key>
+        <string>{data_path}</string>
+        <key>OBSIDIAN_MEMORY_OLLAMA_URL</key>
+        <string>{ollama_url}</string>
+        <key>OBSIDIAN_MEMORY_MODEL</key>
+        <string>{model}</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/obsidian-memory.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/obsidian-memory.err</string>
+    <key>WorkingDirectory</key>
+    <string>{Path.cwd()}</string>
+</dict>
+</plist>
+"""
+
+
+@main.command("install-service")
+@click.pass_context
+def install_service(ctx):
+    """Install launchd service for auto-start on macOS."""
+    if sys.platform != "darwin":
+        click.echo("Error: This command is only available on macOS.", err=True)
+        sys.exit(1)
+
+    vault_path = ctx.obj["vault"]
+    data_path = ctx.obj["data"]
+    ollama_url = ctx.obj["ollama_url"]
+    model = ctx.obj["model"]
+
+    plist_path = LAUNCH_AGENTS_DIR / PLIST_NAME
+
+    # Create LaunchAgents directory if needed
+    LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Unload existing service if present
+    if plist_path.exists():
+        click.echo("Unloading existing service...")
+        subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
+
+    # Write plist
+    plist_content = _get_plist_content(vault_path, data_path, ollama_url, model)
+    plist_path.write_text(plist_content)
+    click.echo(f"Created: {plist_path}")
+
+    # Load service
+    result = subprocess.run(["launchctl", "load", str(plist_path)], capture_output=True, text=True)
+    if result.returncode != 0:
+        click.echo(f"Error loading service: {result.stderr}", err=True)
+        sys.exit(1)
+
+    click.echo("Service installed and started.")
+    click.echo("Logs: /tmp/obsidian-memory.log")
+    click.echo("Errors: /tmp/obsidian-memory.err")
+
+
+@main.command("uninstall-service")
+def uninstall_service():
+    """Uninstall launchd service on macOS."""
+    if sys.platform != "darwin":
+        click.echo("Error: This command is only available on macOS.", err=True)
+        sys.exit(1)
+
+    plist_path = LAUNCH_AGENTS_DIR / PLIST_NAME
+
+    if not plist_path.exists():
+        click.echo("Service not installed.")
+        return
+
+    # Unload service
+    result = subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True, text=True)
+    if result.returncode != 0:
+        click.echo(f"Warning: Error unloading service: {result.stderr}", err=True)
+
+    # Remove plist
+    plist_path.unlink()
+    click.echo("Service uninstalled.")
+
+
+@main.command("service-status")
+def service_status():
+    """Check launchd service status on macOS."""
+    if sys.platform != "darwin":
+        click.echo("Error: This command is only available on macOS.", err=True)
+        sys.exit(1)
+
+    plist_path = LAUNCH_AGENTS_DIR / PLIST_NAME
+
+    if not plist_path.exists():
+        click.echo("Service not installed.")
+        return
+
+    result = subprocess.run(
+        ["launchctl", "list", "com.obsidian-memory.watcher"],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+        click.echo("Service is running.")
+        click.echo(result.stdout)
+    else:
+        click.echo("Service is installed but not running.")
 
 
 if __name__ == "__main__":

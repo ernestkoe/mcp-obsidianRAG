@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Vector store for Obsidian notes with MCP server"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Ernest Koe" }]
 dependencies = [
     "chromadb>=0.4.0",
     "watchdog>=3.0.0",
@@ -17,9 +19,15 @@ dependencies = [
     "click>=8.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ernestkoe/obsidian-memory"
+Repository = "https://github.com/ernestkoe/obsidian-memory"
+Issues = "https://github.com/ernestkoe/obsidian-memory/issues"
+
 [project.scripts]
 obsidian-memory = "obsidian_memory.cli:main"
 obsidian-memory-mcp = "obsidian_memory.server:run_server"
+obsidian-memory-watch = "obsidian_memory.watcher:run_watcher"
 
 [tool.obsidian-memory]
 vault_path = "/Users/ernestkoe/Documents/Brave Robot"
@@ -27,3 +35,9 @@ data_path = "./data"
 ollama_url = "http://localhost:11434"
 embedding_model = "nomic-embed-text"
 exclude = ["attachments/**", ".obsidian/**", ".trash/**"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pyright>=1.1.0",
+]
