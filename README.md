@@ -1,4 +1,4 @@
-# mcp-obsidianRAG
+# obsidian-rag
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -31,12 +31,12 @@ claude mcp add obsidian-rag -- uvx obsidian-rag serve
 ### Alternative: Clone and install
 
 ```bash
-git clone https://github.com/ernestkoe/mcp-obsidianRAG.git
-cd mcp-obsidianRAG
+git clone https://github.com/ernestkoe/obsidian-rag.git
+cd obsidian-rag
 uv sync
 
 uv run obsidian-rag setup
-claude mcp add obsidian-rag -- uv run --directory /path/to/mcp-obsidianRAG obsidian-rag serve
+claude mcp add obsidian-rag -- uv run --directory /path/to/obsidian-rag obsidian-rag serve
 ```
 
 The setup wizard will:

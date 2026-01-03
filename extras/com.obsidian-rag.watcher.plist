@@ -30,7 +30,7 @@
         <key>OBSIDIAN_RAG_VAULT</key>
         <string>/path/to/your/obsidian/vault</string>
         <key>OBSIDIAN_RAG_DATA</key>
-        <string>/path/to/mcp-obsidianRAG/data</string>
+        <string>/path/to/obsidian-rag/data</string>
         <key>OBSIDIAN_RAG_OLLAMA_URL</key>
         <string>http://localhost:11434</string>
         <key>OBSIDIAN_RAG_MODEL</key>
@@ -50,6 +50,6 @@
     <string>/tmp/obsidian-rag.err</string>
 
     <key>WorkingDirectory</key>
-    <string>/path/to/mcp-obsidianRAG</string>
+    <string>/path/to/obsidian-rag</string>
 </dict>
 </plist>

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-mcp-obsidianRAG is an MCP (Model Context Protocol) server that provides semantic search over Obsidian notes. It uses OpenAI embeddings by default (or Ollama for local processing) with ChromaDB for vector storage.
+obsidian-rag is an MCP (Model Context Protocol) server that provides semantic search over Obsidian notes. It uses OpenAI embeddings by default (or Ollama for local processing) with ChromaDB for vector storage.
 
 ## Commands
 
@@ -25,7 +25,7 @@ uv run obsidian-rag setup
 uv run obsidian-rag index
 
 # Run the MCP server (stdio transport)
-uv run obsidian-rag-mcp
+uv run obsidian-rag serve
 
 # Watch vault for changes
 uv run obsidian-rag watch

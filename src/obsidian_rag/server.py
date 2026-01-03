@@ -1,4 +1,4 @@
-"""MCP server for mcp-obsidianRAG with semantic search tools."""
+"""MCP server for obsidian-rag with semantic search tools."""
 
 from __future__ import annotations
 

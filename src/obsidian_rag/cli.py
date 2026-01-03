@@ -1,4 +1,4 @@
-"""Command-line interface for mcp-obsidianRAG."""
+"""Command-line interface for obsidian-rag."""
 
 import os
 import shutil
@@ -16,7 +16,7 @@ from .watcher import VaultWatcher
 
 # Default configuration
 DEFAULT_VAULT = "/Users/ernestkoe/Documents/Brave Robot"
-DEFAULT_DATA = "/Users/ernestkoe/Projects/mcp-obsidianRAG/data"
+DEFAULT_DATA = "/Users/ernestkoe/Projects/obsidian-rag/data"
 DEFAULT_PROVIDER = "openai"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 

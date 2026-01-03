@@ -1,11 +1,11 @@
-# Contributing to mcp-obsidianRAG
+# Contributing to obsidian-rag
 
 ## Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/ernestkoe/mcp-obsidianRAG.git
-cd mcp-obsidianRAG
+git clone https://github.com/ernestkoe/obsidian-rag.git
+cd obsidian-rag
 
 # Install with dev dependencies
 uv sync --dev

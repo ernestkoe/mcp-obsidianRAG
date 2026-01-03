@@ -3,7 +3,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "mcp-obsidianRAG",
+      "package-name": "obsidian-rag",
       "bump-minor-pre-major": true,
       "extra-files": [
         {
