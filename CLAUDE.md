@@ -64,8 +64,8 @@ Each chunk stores: `file_path`, `heading`, `heading_level`, `type` ("daily" if p
 ## Configuration
 
 Config file location (created by `setup` command):
-- macOS/Linux: `~/.config/obsidian-rag/config.toml`
-- Windows: `%APPDATA%/obsidian-rag/config.toml`
+- macOS/Linux: `~/.config/obsidian-notes-rag/config.toml`
+- Windows: `%APPDATA%/obsidian-notes-rag/config.toml`
 
 Environment variables (override config file):
 - `OPENAI_API_KEY` - OpenAI API key (required for default provider)

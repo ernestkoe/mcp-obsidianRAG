@@ -15,7 +15,7 @@ except ImportError:
 import tomli_w
 from platformdirs import user_config_dir, user_data_dir
 
-APP_NAME = "obsidian-rag"
+APP_NAME = "obsidian-notes-rag"
 
 
 def get_config_dir() -> Path:

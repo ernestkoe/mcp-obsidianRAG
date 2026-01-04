@@ -1,4 +1,4 @@
-# obsidian-rag
+# obsidian-notes-rag
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -49,12 +49,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 ### Alternative: Clone and install
 
 ```bash
-git clone https://github.com/ernestkoe/obsidian-rag.git
-cd obsidian-rag
+git clone https://github.com/ernestkoe/obsidian-notes-rag.git
+cd obsidian-notes-rag
 uv sync
 
 uv run obsidian-notes-rag setup
-claude mcp add -s user obsidian-notes-rag -- uv run --directory /path/to/obsidian-rag obsidian-notes-rag serve
+claude mcp add -s user obsidian-notes-rag -- uv run --directory /path/to/obsidian-notes-rag obsidian-notes-rag serve
 ```
 
 The setup wizard will:

@@ -1,11 +1,11 @@
-# Contributing to obsidian-rag
+# Contributing to obsidian-notes-rag
 
 ## Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/ernestkoe/obsidian-rag.git
-cd obsidian-rag
+git clone https://github.com/ernestkoe/obsidian-notes-rag.git
+cd obsidian-notes-rag
 
 # Install with dev dependencies
 uv sync --dev
