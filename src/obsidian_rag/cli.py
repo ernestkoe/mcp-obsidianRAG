@@ -344,6 +344,8 @@ def serve():
 # Service management
 # TODO: Add Linux systemd support (create .service file in ~/.config/systemd/user/)
 # TODO: Add Windows Task Scheduler support (use schtasks or win32api)
+# TODO: Improve macOS login item appearance (shows as generic "python3" from unidentified developer)
+#       Options: py2app wrapper, Homebrew formula with brew services, or code signing
 PLIST_NAME = "com.obsidian-notes-rag.watcher.plist"
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
 
