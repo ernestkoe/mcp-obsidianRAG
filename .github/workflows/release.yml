@@ -35,8 +35,9 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment: release
+    environment: pypi
     permissions:
+      contents: write
       id-token: write
     steps:
       - name: Download dist artifacts
@@ -47,6 +48,3 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          attestations: false
