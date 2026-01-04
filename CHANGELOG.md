@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.0...v0.2.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* update package branding to obsidian-notes-rag ([7cad58b](https://github.com/ernestkoe/obsidian-notes-rag/commit/7cad58b4027b28a70635ae1d6d3329e26f42e07a))
+
 ## [0.2.0](https://github.com/ernestkoe/obsidian-rag/compare/v0.1.2...v0.2.0) (2026-01-04)
 
 
