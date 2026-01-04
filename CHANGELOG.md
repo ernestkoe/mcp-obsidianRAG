@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0](https://github.com/ernestkoe/obsidian-rag/compare/v0.1.2...v0.2.0) (2026-01-04)
+
+
+### Features
+
+* rename package to obsidian-notes-rag ([ab78ec8](https://github.com/ernestkoe/obsidian-rag/commit/ab78ec80e3cdb59d9713e33e6a263a0446bce311))
+
+
+### Bug Fixes
+
+* suppress httpx logs during indexing progress bar ([75e16a4](https://github.com/ernestkoe/obsidian-rag/commit/75e16a459742716f1e7466ea7cb416e7f06ad281))
+* update setup completion message with correct package name ([41ba859](https://github.com/ernestkoe/obsidian-rag/commit/41ba85906c20da50d67c69872c8dcf841ecd1020))
+* use pypi environment for trusted publishing ([227fe16](https://github.com/ernestkoe/obsidian-rag/commit/227fe16629df9d6dd277ded144e8e07a87c34631))
+
+
+### Documentation
+
+* add Claude Desktop JSON config example ([6b17b45](https://github.com/ernestkoe/obsidian-rag/commit/6b17b45aed6810d114803f66872927c7e90e3743))
+* update CLAUDE.md CLI commands to use new package name ([48d17ab](https://github.com/ernestkoe/obsidian-rag/commit/48d17ab1e937f879d7da1b768d81c25181fcfc97))
+* update CLI commands for new package name ([71c708f](https://github.com/ernestkoe/obsidian-rag/commit/71c708f88f7dde15ea0b432d9c95c6f0919d18ee))
+
 ## [0.1.2](https://github.com/ernestkoe/obsidian-rag/compare/v0.1.1...v0.1.2) (2026-01-04)
 
 
