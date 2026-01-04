@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.1...v0.2.2) (2026-01-04)
+
+
+### Documentation
+
+* add Buy Me A Coffee badge ([9a40405](https://github.com/ernestkoe/obsidian-notes-rag/commit/9a40405b8f47e35c968767768fb0b19640ca34a8))
+* update CLAUDE.md with correct package name and PyPI link ([d710ed4](https://github.com/ernestkoe/obsidian-notes-rag/commit/d710ed48c86789b4eb1ed7490436e49c9e4169ea))
+
 ## [0.2.1](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.0...v0.2.1) (2026-01-04)
 
 
