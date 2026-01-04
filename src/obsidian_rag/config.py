@@ -1,4 +1,4 @@
-"""Configuration management for obsidian-rag."""
+"""Configuration management for obsidian-notes-rag."""
 
 from __future__ import annotations
 
