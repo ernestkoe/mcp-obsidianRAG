@@ -20,6 +20,7 @@ dependencies = [
     "openai>=1.0.0",
     "platformdirs>=3.0.0",
     "tomli-w>=1.0.0",
+    "chonkie>=1.0.0",
 ]
 
 [project.urls]
