@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.2...v0.3.0) (2026-01-13)
+
+
+### Features
+
+* **indexer:** add Chonkie for smart chunking of oversized content ([819d3dd](https://github.com/ernestkoe/obsidian-notes-rag/commit/819d3ddc618d1d5aecae27fedba8695695475c5e))
+* **watcher:** add health checks, retry queue, and notifications ([6587d04](https://github.com/ernestkoe/obsidian-notes-rag/commit/6587d04fea5124ecd2b0faa38360afcb142e1528))
+
+
+### Bug Fixes
+
+* update launchd service name to obsidian-notes-rag ([1ba651a](https://github.com/ernestkoe/obsidian-notes-rag/commit/1ba651a54b8d0de8116051c1320fd3f06cd2f4c3))
+
 ## [0.2.2](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.1...v0.2.2) (2026-01-04)
 
 
