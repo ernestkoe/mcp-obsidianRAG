@@ -49,6 +49,10 @@ class Config:
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "nomic-embed-text"
 
+    # LM Studio settings
+    lmstudio_url: str = "http://localhost:1234"
+    lmstudio_model: str = "text-embedding-nomic-embed-text-v1.5"
+
     # OpenAI model (optional override)
     openai_model: str = "text-embedding-3-small"
 
@@ -92,6 +96,11 @@ def load_config() -> Config:
                 config.ollama_url = data["ollama"].get("url", config.ollama_url)
                 config.ollama_model = data["ollama"].get("model", config.ollama_model)
 
+            # LM Studio settings
+            if "lmstudio" in data:
+                config.lmstudio_url = data["lmstudio"].get("url", config.lmstudio_url)
+                config.lmstudio_model = data["lmstudio"].get("model", config.lmstudio_model)
+
         except Exception:
             pass  # Use defaults if config file is invalid
 
@@ -104,9 +113,13 @@ def load_config() -> Config:
         config.data_path = os.environ["OBSIDIAN_RAG_DATA"]
     if os.environ.get("OBSIDIAN_RAG_OLLAMA_URL"):
         config.ollama_url = os.environ["OBSIDIAN_RAG_OLLAMA_URL"]
+    if os.environ.get("OBSIDIAN_RAG_LMSTUDIO_URL"):
+        config.lmstudio_url = os.environ["OBSIDIAN_RAG_LMSTUDIO_URL"]
     if os.environ.get("OBSIDIAN_RAG_MODEL"):
         if config.provider == "ollama":
             config.ollama_model = os.environ["OBSIDIAN_RAG_MODEL"]
+        elif config.provider == "lmstudio":
+            config.lmstudio_model = os.environ["OBSIDIAN_RAG_MODEL"]
         else:
             config.openai_model = os.environ["OBSIDIAN_RAG_MODEL"]
 
@@ -150,6 +163,16 @@ def save_config(config: Config) -> Path:
             ollama_section["model"] = config.ollama_model
         if ollama_section:
             data["ollama"] = ollama_section
+
+    # LM Studio settings
+    if config.provider == "lmstudio":
+        lmstudio_section: dict = {}
+        if config.lmstudio_url != "http://localhost:1234":
+            lmstudio_section["url"] = config.lmstudio_url
+        if config.lmstudio_model != "text-embedding-nomic-embed-text-v1.5":
+            lmstudio_section["model"] = config.lmstudio_model
+        if lmstudio_section:
+            data["lmstudio"] = lmstudio_section
 
     with open(config_path, "wb") as f:
         tomli_w.dump(data, f)

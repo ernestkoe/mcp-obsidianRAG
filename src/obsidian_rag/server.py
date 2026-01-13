@@ -36,10 +36,22 @@ def get_embedder() -> Embedder:
         # Set API key in environment if configured
         if config.provider == "openai" and config.openai_api_key:
             os.environ["OPENAI_API_KEY"] = config.openai_api_key
+        
+        # Determine model and base_url based on provider
+        if config.provider == "openai":
+            model = config.openai_model
+            base_url = None
+        elif config.provider == "ollama":
+            model = config.ollama_model
+            base_url = config.ollama_url
+        else:  # lmstudio
+            model = config.lmstudio_model
+            base_url = config.lmstudio_url
+        
         _embedder = create_embedder(
             provider=config.provider,
-            model=config.openai_model if config.provider == "openai" else config.ollama_model,
-            base_url=config.ollama_url,
+            model=model,
+            base_url=base_url,
         )
     return _embedder
 
@@ -73,7 +85,7 @@ def search_notes(
     store = get_store()
 
     # Generate query embedding
-    query_embedding = embedder.embed(query)
+    query_embedding = embedder.embed(query, task_type="search_query")
 
     # Build filter
     where = {"type": note_type} if note_type else None

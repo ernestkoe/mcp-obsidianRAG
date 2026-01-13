@@ -14,7 +14,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
 
 from .config import Config, load_config, save_config, get_config_path, get_data_dir
-from .indexer import create_embedder, VaultIndexer
+from .indexer import create_embedder, VaultIndexer, is_ollama_running, get_ollama_models, is_lmstudio_running, get_lmstudio_models
 from .server import run_server
 from .store import VectorStore
 from .watcher import VaultWatcher
@@ -24,19 +24,22 @@ DEFAULT_VAULT = "/Users/ernestkoe/Documents/Brave Robot"
 DEFAULT_DATA = "/Users/ernestkoe/Projects/obsidian-notes-rag/data"
 DEFAULT_PROVIDER = "openai"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
+DEFAULT_LMSTUDIO_URL = "http://localhost:1234"
 
 
 @click.group()
 @click.option("--vault", default=None, help="Path to Obsidian vault")
 @click.option("--data", default=None, help="Path to vector store data")
 @click.option("--provider", default=None,
-              type=click.Choice(["openai", "ollama"]),
+              type=click.Choice(["openai", "ollama", "lmstudio"]),
               help="Embedding provider (default: openai)")
 @click.option("--ollama-url", default=None,
               help="Ollama API URL (only used with --provider ollama)")
+@click.option("--lmstudio-url", default=None,
+              help="LM Studio API URL (only used with --provider lmstudio)")
 @click.option("--model", default=None, help="Override embedding model name")
 @click.pass_context
-def main(ctx, vault, data, provider, ollama_url, model):
+def main(ctx, vault, data, provider, ollama_url, lmstudio_url, model):
     """Obsidian RAG - Semantic search for your Obsidian vault."""
     ctx.ensure_object(dict)
 
@@ -47,6 +50,7 @@ def main(ctx, vault, data, provider, ollama_url, model):
     ctx.obj["data"] = data or config.get_data_path()
     ctx.obj["provider"] = provider or config.provider
     ctx.obj["ollama_url"] = ollama_url or config.ollama_url
+    ctx.obj["lmstudio_url"] = lmstudio_url or config.lmstudio_url
     ctx.obj["model"] = model  # None means use provider default
     ctx.obj["config"] = config
 
@@ -69,8 +73,14 @@ def setup():
     click.echo("Select embedding provider:")
     click.echo("  1. OpenAI (recommended - requires API key)")
     click.echo("  2. Ollama (local, offline)")
-    provider_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), default="1")
-    config.provider = "openai" if provider_choice == "1" else "ollama"
+    click.echo("  3. LM Studio (local, offline)")
+    provider_choice = click.prompt("Choice", type=click.Choice(["1", "2", "3"]), default="1")
+    if provider_choice == "1":
+        config.provider = "openai"
+    elif provider_choice == "2":
+        config.provider = "ollama"
+    else:
+        config.provider = "lmstudio"
 
     # 2. Provider-specific setup
     if config.provider == "openai":
@@ -86,13 +96,93 @@ def setup():
             click.echo("\nNo OPENAI_API_KEY found in environment.")
             api_key = click.prompt("Enter your OpenAI API key", hide_input=True)
             config.openai_api_key = api_key
-    else:
-        # Ollama setup
+    elif config.provider == "ollama":
+        # Ollama setup - check connection first
+        default_ollama_url = "http://localhost:11434"
         ollama_url = click.prompt(
             "\nOllama API URL",
-            default="http://localhost:11434"
+            default=default_ollama_url
         )
         config.ollama_url = ollama_url
+        
+        # Verify connection and get available models
+        click.echo("Checking Ollama server...", nl=False)
+        server_running = is_ollama_running(ollama_url)
+        
+        if server_running:
+            click.echo(" ✓ connected")
+            
+            # Fetch available embedding models
+            click.echo("Fetching available embedding models...", nl=False)
+            available_models = get_ollama_models(ollama_url)
+            
+            if available_models:
+                click.echo(f" found {len(available_models)}")
+                click.echo("\nSelect embedding model:")
+                for i, model in enumerate(available_models, 1):
+                    click.echo(f"  {i}. {model}")
+                click.echo(f"  {len(available_models) + 1}. Other (enter model name)")
+                
+                choices = [str(i) for i in range(1, len(available_models) + 2)]
+                model_choice = click.prompt("Choice", type=click.Choice(choices), default="1")
+                choice_idx = int(model_choice) - 1
+                
+                if choice_idx < len(available_models):
+                    config.ollama_model = available_models[choice_idx]
+                else:
+                    config.ollama_model = click.prompt("Enter embedding model name")
+            else:
+                click.echo(" none found")
+                click.echo("\nNo embedding models detected. Install nomic-embed-text:")
+                click.echo("  ollama pull nomic-embed-text")
+                config.ollama_model = click.prompt("\nEnter embedding model name", default="nomic-embed-text")
+        else:
+            click.echo(" not detected (server may still work)")
+            click.echo("Could not auto-detect models.")
+            config.ollama_model = click.prompt("\nEnter embedding model name", default="nomic-embed-text")
+    else:
+        # LM Studio setup - check connection after getting URL
+        default_lmstudio_url = "http://localhost:1234"
+        lmstudio_url = click.prompt(
+            "\nLM Studio API URL",
+            default=default_lmstudio_url
+        )
+        config.lmstudio_url = lmstudio_url
+        
+        # Verify connection and get available models
+        click.echo("Checking LM Studio server...", nl=False)
+        server_running = is_lmstudio_running(lmstudio_url)
+        
+        if server_running:
+            click.echo(" ✓ connected")
+            
+            # Fetch available embedding models
+            click.echo("Fetching available embedding models...", nl=False)
+            available_models = get_lmstudio_models(lmstudio_url)
+            
+            if available_models:
+                click.echo(f" found {len(available_models)}")
+                click.echo("\nSelect embedding model:")
+                for i, model in enumerate(available_models, 1):
+                    click.echo(f"  {i}. {model}")
+                click.echo(f"  {len(available_models) + 1}. Other (enter model identifier)")
+                
+                choices = [str(i) for i in range(1, len(available_models) + 2)]
+                model_choice = click.prompt("Choice", type=click.Choice(choices), default="1")
+                choice_idx = int(model_choice) - 1
+                
+                if choice_idx < len(available_models):
+                    config.lmstudio_model = available_models[choice_idx]
+                else:
+                    config.lmstudio_model = click.prompt("Enter embedding model identifier")
+            else:
+                click.echo(" none found")
+                click.echo("\nNo embedding models detected.")
+                config.lmstudio_model = click.prompt("Enter embedding model identifier")
+        else:
+            click.echo(" not detected (server may still work)")
+            click.echo("Could not auto-detect models.")
+            config.lmstudio_model = click.prompt("Enter embedding model identifier")
 
     # 3. Vault path
     while True:
@@ -131,11 +221,18 @@ def setup():
                 # Set API key in environment for OpenAI client
                 if config.openai_api_key:
                     os.environ["OPENAI_API_KEY"] = config.openai_api_key
-                embedder = create_embedder(provider="openai")
-            else:
+                embedder = create_embedder(provider="openai", model=config.openai_model)
+            elif config.provider == "ollama":
                 embedder = create_embedder(
                     provider="ollama",
+                    model=config.ollama_model,
                     base_url=config.ollama_url
+                )
+            else:  # lmstudio
+                embedder = create_embedder(
+                    provider="lmstudio",
+                    model=config.lmstudio_model,
+                    base_url=config.lmstudio_url
                 )
 
             store = VectorStore(data_path=config.data_path)
@@ -187,14 +284,34 @@ def index(ctx, clear):
     data_path = ctx.obj["data"]
     provider = ctx.obj["provider"]
     ollama_url = ctx.obj["ollama_url"]
+    lmstudio_url = ctx.obj["lmstudio_url"]
+    config = ctx.obj["config"]
+    
+    # Get model from CLI override or config file based on provider
     model = ctx.obj["model"]
+    if model is None:
+        if provider == "openai":
+            model = config.openai_model
+        elif provider == "ollama":
+            model = config.ollama_model
+        elif provider == "lmstudio":
+            model = config.lmstudio_model
 
     click.echo(f"Indexing vault: {vault_path}")
     click.echo(f"Data path: {data_path}")
     click.echo(f"Provider: {provider}")
+    click.echo(f"Model: {model}")
+
+    # Determine the correct base_url based on provider
+    if provider == "ollama":
+        base_url = ollama_url
+    elif provider == "lmstudio":
+        base_url = lmstudio_url
+    else:
+        base_url = None
 
     # Initialize components
-    embedder = create_embedder(provider=provider, model=model, base_url=ollama_url)
+    embedder = create_embedder(provider=provider, model=model, base_url=base_url)
     store = VectorStore(data_path=data_path)
     indexer = VaultIndexer(vault_path=vault_path, embedder=embedder)
 
@@ -249,15 +366,34 @@ def search(ctx, query, limit, note_type):
     data_path = ctx.obj["data"]
     provider = ctx.obj["provider"]
     ollama_url = ctx.obj["ollama_url"]
+    lmstudio_url = ctx.obj["lmstudio_url"]
+    config = ctx.obj["config"]
+    
+    # Get model from CLI override or config file based on provider
     model = ctx.obj["model"]
+    if model is None:
+        if provider == "openai":
+            model = config.openai_model
+        elif provider == "ollama":
+            model = config.ollama_model
+        elif provider == "lmstudio":
+            model = config.lmstudio_model
+
+    # Determine the correct base_url based on provider
+    if provider == "ollama":
+        base_url = ollama_url
+    elif provider == "lmstudio":
+        base_url = lmstudio_url
+    else:
+        base_url = None
 
     # Initialize components
-    embedder = create_embedder(provider=provider, model=model, base_url=ollama_url)
+    embedder = create_embedder(provider=provider, model=model, base_url=base_url)
     store = VectorStore(data_path=data_path)
 
     # Generate query embedding
     click.echo(f"Searching for: {query}\n")
-    query_embedding = embedder.embed(query)
+    query_embedding = embedder.embed(query, task_type="search_query")
 
     # Build filter
     where = None
@@ -316,6 +452,7 @@ def watch(ctx, debounce):
     data_path = ctx.obj["data"]
     provider = ctx.obj["provider"]
     ollama_url = ctx.obj["ollama_url"]
+    lmstudio_url = ctx.obj["lmstudio_url"]
     model = ctx.obj["model"]
 
     click.echo(f"Watching vault: {vault_path}")
@@ -329,6 +466,7 @@ def watch(ctx, debounce):
         data_path=data_path,
         provider=provider,
         ollama_url=ollama_url,
+        lmstudio_url=lmstudio_url,
         model=model,
         debounce_delay=debounce,
     )

@@ -28,6 +28,7 @@ DEFAULT_VAULT_PATH = _config.vault_path or os.environ.get(
 DEFAULT_DATA_PATH = _config.get_data_path()
 DEFAULT_PROVIDER = _config.provider
 DEFAULT_OLLAMA_URL = _config.ollama_url
+DEFAULT_LMSTUDIO_URL = _config.lmstudio_url
 DEFAULT_MODEL: Optional[str] = None  # Use provider default
 DEFAULT_DEBOUNCE = float(os.environ.get("OBSIDIAN_RAG_DEBOUNCE", "2.0"))
 
@@ -218,6 +219,7 @@ class VaultWatcher:
         data_path: str = DEFAULT_DATA_PATH,
         provider: str = DEFAULT_PROVIDER,
         ollama_url: str = DEFAULT_OLLAMA_URL,
+        lmstudio_url: str = DEFAULT_LMSTUDIO_URL,
         model: Optional[str] = DEFAULT_MODEL,
         debounce_delay: float = DEFAULT_DEBOUNCE,
     ):
@@ -227,7 +229,15 @@ class VaultWatcher:
         if provider == "openai" and _config.openai_api_key:
             os.environ["OPENAI_API_KEY"] = _config.openai_api_key
 
-        self.embedder = create_embedder(provider=provider, model=model, base_url=ollama_url)
+        # Determine correct base_url based on provider
+        if provider == "ollama":
+            base_url = ollama_url
+        elif provider == "lmstudio":
+            base_url = lmstudio_url
+        else:
+            base_url = None
+
+        self.embedder = create_embedder(provider=provider, model=model, base_url=base_url)
         self.store = VectorStore(data_path=data_path)
         self.debounce_delay = debounce_delay
 
@@ -304,6 +314,7 @@ def run_watcher(
     data_path: str = DEFAULT_DATA_PATH,
     provider: str = DEFAULT_PROVIDER,
     ollama_url: str = DEFAULT_OLLAMA_URL,
+    lmstudio_url: str = DEFAULT_LMSTUDIO_URL,
     model: Optional[str] = DEFAULT_MODEL,
     debounce: float = DEFAULT_DEBOUNCE,
 ):
@@ -320,6 +331,7 @@ def run_watcher(
         data_path=data_path,
         provider=provider,
         ollama_url=ollama_url,
+        lmstudio_url=lmstudio_url,
         model=model,
         debounce_delay=debounce,
     )
