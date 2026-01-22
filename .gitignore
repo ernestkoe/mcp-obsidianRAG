@@ -34,6 +34,7 @@ ENV/
 # Project specific
 data/
 .claude/
+.atlas/
 
 # OS
 .DS_Store
