@@ -11,6 +11,12 @@ from typing import Iterator, Optional, List, Dict, Tuple
 
 import httpx
 import yaml
+from chonkie import RecursiveChunker
+
+# Maximum tokens per chunk
+# nomic-embed-text context length is 2048 tokens
+# Using 1500 to leave headroom for tokenizer differences
+MAX_CHUNK_TOKENS = 1500
 
 
 @dataclass
@@ -40,6 +46,63 @@ def parse_frontmatter(content: str) -> Tuple[Dict, str]:
         frontmatter = {}
 
     return frontmatter, parts[2].strip()
+
+
+# Lazy-initialized chunker for splitting oversized content
+_recursive_chunker: Optional[RecursiveChunker] = None
+
+
+def _get_recursive_chunker() -> RecursiveChunker:
+    """Get or create the RecursiveChunker instance."""
+    global _recursive_chunker
+    if _recursive_chunker is None:
+        # Use gpt2 tokenizer for accurate token counting
+        _recursive_chunker = RecursiveChunker(
+            chunk_size=MAX_CHUNK_TOKENS,
+            tokenizer="gpt2"
+        )
+    return _recursive_chunker
+
+
+def split_oversized_chunk(chunk: Chunk) -> List[Chunk]:
+    """Split a chunk that exceeds MAX_CHUNK_TOKENS using Chonkie.
+
+    Args:
+        chunk: The oversized Chunk to split
+
+    Returns:
+        List of smaller Chunk objects, or [chunk] if already small enough
+    """
+    # Quick estimate: ~4 chars per token on average
+    estimated_tokens = len(chunk.content) // 4
+    if estimated_tokens <= MAX_CHUNK_TOKENS:
+        return [chunk]
+
+    chunker = _get_recursive_chunker()
+    sub_chunks = chunker(chunk.content)
+
+    if len(sub_chunks) <= 1:
+        return [chunk]
+
+    result = []
+    for i, sub in enumerate(sub_chunks):
+        # Generate new ID for each sub-chunk
+        new_id = _generate_chunk_id(
+            chunk.file_path,
+            chunk.heading,
+            sub.text,
+            i
+        )
+        result.append(Chunk(
+            id=new_id,
+            content=sub.text,
+            file_path=chunk.file_path,
+            heading=chunk.heading,
+            heading_level=chunk.heading_level,
+            metadata={**chunk.metadata, "split_index": i}
+        ))
+
+    return result
 
 
 def chunk_by_heading(content: str, file_path: str, min_chunk_size: int = 100) -> List[Chunk]:
@@ -114,7 +177,12 @@ def chunk_by_heading(content: str, file_path: str, min_chunk_size: int = 100) ->
             metadata={**frontmatter, "file_path": file_path}
         ))
 
-    return chunks
+    # Split any oversized chunks using Chonkie
+    final_chunks = []
+    for chunk in chunks:
+        final_chunks.extend(split_oversized_chunk(chunk))
+
+    return final_chunks
 
 
 def _generate_chunk_id(file_path: str, heading: Optional[str], content: str, chunk_index: int = 0) -> str:

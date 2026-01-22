@@ -269,6 +269,43 @@ def setup():
             click.echo(f"\n✗ Indexing failed: {e}", err=True)
             click.echo("You can run indexing later with: obsidian-notes-rag index")
 
+    # 7. Offer to install watcher service
+    click.echo("\nThe watcher service auto-indexes notes when they change.")
+    if sys.platform == "darwin":
+        if click.confirm("Install watcher as a background service?", default=True):
+            try:
+                plist_path = LAUNCH_AGENTS_DIR / PLIST_NAME
+                LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+
+                # Unload existing service if present
+                if plist_path.exists():
+                    subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
+
+                # Write plist with config values
+                plist_content = _get_plist_content(
+                    config.vault_path,
+                    config.data_path or str(get_data_dir()),
+                    config.provider,
+                    config.ollama_url,
+                    None  # model
+                )
+                plist_path.write_text(plist_content)
+
+                # Load service
+                result = subprocess.run(["launchctl", "load", str(plist_path)], capture_output=True, text=True)
+                if result.returncode != 0:
+                    click.echo(f"✗ Error starting service: {result.stderr}", err=True)
+                else:
+                    click.echo("✓ Watcher service installed and started")
+                    click.echo("  Logs: /tmp/obsidian-notes-rag.log")
+            except Exception as e:
+                click.echo(f"✗ Service installation failed: {e}", err=True)
+                click.echo("  You can install later with: obsidian-notes-rag install-service")
+    else:
+        # Linux/Windows: no background service support yet
+        click.echo("  Background service not yet supported on this platform.")
+        click.echo("  To auto-index on file changes, run: obsidian-notes-rag watch")
+
     click.echo("\nSetup complete! You can now:")
     click.echo("  - Search: obsidian-notes-rag search \"your query\"")
     click.echo("  - Add to Claude Code:")

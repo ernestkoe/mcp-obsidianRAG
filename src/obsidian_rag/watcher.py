@@ -5,12 +5,15 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import subprocess
 import sys
 import threading
 import time
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
+import httpx
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
@@ -18,6 +21,11 @@ from watchdog.observers.api import BaseObserver
 from .config import load_config
 from .indexer import create_embedder, Embedder, VaultIndexer
 from .store import VectorStore
+
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_DELAY = 30  # seconds
+HEALTH_CHECK_INTERVAL = 60  # seconds
 
 # Load config for defaults
 _config = load_config()
@@ -33,6 +41,75 @@ DEFAULT_MODEL: Optional[str] = None  # Use provider default
 DEFAULT_DEBOUNCE = float(os.environ.get("OBSIDIAN_RAG_DEBOUNCE", "2.0"))
 
 logger = logging.getLogger(__name__)
+
+
+def check_ollama_health(ollama_url: str = "http://localhost:11434") -> bool:
+    """Check if Ollama is running and accessible."""
+    try:
+        response = httpx.get(f"{ollama_url}/api/tags", timeout=5.0)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+def send_notification(title: str, message: str):
+    """Send a macOS notification."""
+    try:
+        subprocess.run(
+            [
+                "osascript",
+                "-e",
+                f'display notification "{message}" with title "{title}"',
+            ],
+            check=False,
+            capture_output=True,
+        )
+    except Exception:
+        pass  # Notifications are best-effort
+
+
+class RetryQueue:
+    """Queue for files that failed to index."""
+
+    def __init__(self, max_retries: int = MAX_RETRIES):
+        self.max_retries = max_retries
+        self._queue: deque[tuple[Path, int]] = deque()
+        self._lock = threading.Lock()
+
+    def add(self, path: Path):
+        """Add a file to the retry queue."""
+        with self._lock:
+            # Check if already in queue
+            for queued_path, _ in self._queue:
+                if queued_path == path:
+                    return
+            self._queue.append((path, 0))
+            logger.info(f"Added to retry queue: {path}")
+
+    def get_next(self) -> Optional[tuple[Path, int]]:
+        """Get the next file to retry, if any."""
+        with self._lock:
+            if not self._queue:
+                return None
+            return self._queue.popleft()
+
+    def requeue(self, path: Path, attempts: int):
+        """Re-add a file with incremented attempt count."""
+        with self._lock:
+            if attempts < self.max_retries:
+                self._queue.append((path, attempts + 1))
+                logger.info(f"Re-queued {path} (attempt {attempts + 1}/{self.max_retries})")
+            else:
+                logger.error(f"Max retries exceeded for {path}")
+                send_notification(
+                    "Obsidian RAG Error",
+                    f"Failed to index: {path.name}"
+                )
+
+    def is_empty(self) -> bool:
+        """Check if the queue is empty."""
+        with self._lock:
+            return len(self._queue) == 0
 
 
 class DebouncedHandler:
@@ -80,12 +157,14 @@ class NoteEventHandler(FileSystemEventHandler):
         store: VectorStore,
         debounce_delay: float = 2.0,
         exclude_patterns: Optional[list[str]] = None,
+        retry_queue: Optional[RetryQueue] = None,
     ):
         super().__init__()
         self.vault_path = vault_path
         self.embedder = embedder
         self.store = store
         self.debouncer = DebouncedHandler(delay=debounce_delay)
+        self.retry_queue = retry_queue
         self.exclude_patterns = exclude_patterns or [
             "attachments/**",
             ".obsidian/**",
@@ -137,6 +216,9 @@ class NoteEventHandler(FileSystemEventHandler):
                 logger.info(f"Indexed {len(chunks)} chunks from {rel_path}")
         except Exception as e:
             logger.error(f"Error indexing {rel_path}: {e}")
+            # Add to retry queue if available
+            if self.retry_queue:
+                self.retry_queue.add(path)
 
     def _delete_file(self, path: Path):
         """Remove a file from the index."""
@@ -224,6 +306,8 @@ class VaultWatcher:
         debounce_delay: float = DEFAULT_DEBOUNCE,
     ):
         self.vault_path = Path(vault_path)
+        self.provider = provider
+        self.ollama_url = ollama_url
 
         # Set OpenAI API key from config if needed
         if provider == "openai" and _config.openai_api_key:
@@ -232,6 +316,11 @@ class VaultWatcher:
         # Determine correct base_url based on provider
         if provider == "ollama":
             base_url = ollama_url
+            # Health check for Ollama before starting
+            if not check_ollama_health(ollama_url):
+                logger.warning("Ollama is not running! Waiting for it to start...")
+                send_notification("Obsidian RAG", "Waiting for Ollama to start...")
+                self._wait_for_ollama(ollama_url)
         elif provider == "lmstudio":
             base_url = lmstudio_url
         else:
@@ -240,10 +329,50 @@ class VaultWatcher:
         self.embedder = create_embedder(provider=provider, model=model, base_url=base_url)
         self.store = VectorStore(data_path=data_path)
         self.debounce_delay = debounce_delay
+        self.retry_queue = RetryQueue()
 
         self._observer: Optional[BaseObserver] = None
         self._handler: Optional[NoteEventHandler] = None
         self._running = False
+        self._health_thread: Optional[threading.Thread] = None
+
+    def _wait_for_ollama(self, ollama_url: str, timeout: int = 300):
+        """Wait for Ollama to become available."""
+        start = time.time()
+        while time.time() - start < timeout:
+            if check_ollama_health(ollama_url):
+                logger.info("Ollama is now available!")
+                return
+            time.sleep(5)
+        raise RuntimeError(f"Ollama did not start within {timeout} seconds")
+
+    def _health_check_loop(self):
+        """Periodically check embedding service health and process retry queue."""
+        while self._running:
+            time.sleep(HEALTH_CHECK_INTERVAL)
+
+            if not self._running:
+                break
+
+            # Check health
+            if self.provider == "ollama" and not check_ollama_health(self.ollama_url):
+                logger.warning("Ollama health check failed!")
+                send_notification("Obsidian RAG", "Ollama is not responding")
+                continue
+
+            # Process retry queue
+            while not self.retry_queue.is_empty():
+                item = self.retry_queue.get_next()
+                if item is None:
+                    break
+
+                path, attempts = item
+                try:
+                    if self._handler:
+                        self._handler._index_file(path)
+                except Exception as e:
+                    logger.error(f"Retry failed for {path}: {e}")
+                    self.retry_queue.requeue(path, attempts)
 
     def start(self):
         """Start watching the vault."""
@@ -252,12 +381,14 @@ class VaultWatcher:
 
         logger.info(f"Starting watcher for vault: {self.vault_path}")
         logger.info(f"Debounce delay: {self.debounce_delay}s")
+        logger.info(f"Provider: {self.provider}")
 
         self._handler = NoteEventHandler(
             vault_path=self.vault_path,
             embedder=self.embedder,
             store=self.store,
             debounce_delay=self.debounce_delay,
+            retry_queue=self.retry_queue,
         )
 
         observer = Observer()
@@ -265,6 +396,10 @@ class VaultWatcher:
         observer.start()
         self._observer = observer
         self._running = True
+
+        # Start health check thread
+        self._health_thread = threading.Thread(target=self._health_check_loop, daemon=True)
+        self._health_thread.start()
 
         logger.info("Watcher started. Press Ctrl+C to stop.")
 
