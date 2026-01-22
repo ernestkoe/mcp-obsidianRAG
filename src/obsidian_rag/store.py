@@ -12,6 +12,11 @@ from chromadb.config import Settings
 from .indexer import Chunk
 
 
+class ChromaDBMigrationError(Exception):
+    """Raised when ChromaDB database needs migration due to version incompatibility."""
+    pass
+
+
 class VectorStore:
     """ChromaDB-backed vector store for Obsidian notes."""
 
@@ -24,10 +29,21 @@ class VectorStore:
             settings=Settings(anonymized_telemetry=False)
         )
 
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name,
-            metadata={"hnsw:space": "cosine"}
-        )
+        try:
+            self.collection = self.client.get_or_create_collection(
+                name=collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+        except KeyError as e:
+            if "_type" in str(e):
+                raise ChromaDBMigrationError(
+                    f"Your ChromaDB database at '{self.data_path}' was created with an older "
+                    f"version and is incompatible with the current ChromaDB version.\n\n"
+                    f"To fix this, re-index your vault:\n"
+                    f"  obsidian-notes-rag index --clear\n\n"
+                    f"This will delete the old database and create a fresh index."
+                ) from e
+            raise
 
     def add(self, chunk: Chunk, embedding: List[float]) -> None:
         """Add a single chunk to the store."""
