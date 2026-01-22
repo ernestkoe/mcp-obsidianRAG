@@ -1,6 +1,33 @@
 # CHANGELOG
 
 
+## v0.4.1 (2026-01-22)
+
+### Bug Fixes
+
+- Handle ChromaDB version incompatibility gracefully
+  ([`bd03c4e`](https://github.com/ernestkoe/obsidian-notes-rag/commit/bd03c4e37a5b75eaf61d04123cb6953ead2f738b))
+
+- Tighten chromadb constraint from >=0.4.0 to >=0.6.0 - Add ChromaDBMigrationError with clear
+  instructions when users have databases created with older ChromaDB versions - Error message tells
+  users to run `obsidian-notes-rag index --clear`
+
+Fixes KeyError: '_type' caused by schema changes between ChromaDB 0.4.x and 0.6.x where
+  config_json_str format changed.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+### Chores
+
+- Gitignore .atlas directory
+  ([`9fd567a`](https://github.com/ernestkoe/obsidian-notes-rag/commit/9fd567ac2eb38187715d5dfa4c1e3c2ff67fdc2a))
+
+Remove .atlas/project.yaml from tracking - this is auto-generated metadata from the atlas project
+  manager, not project source code.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+
 ## v0.4.0 (2026-01-22)
 
 ### Bug Fixes
