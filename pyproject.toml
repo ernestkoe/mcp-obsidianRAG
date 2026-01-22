@@ -11,7 +11,9 @@ requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Ernest Koe" }]
 dependencies = [
-    "chromadb>=0.4.0",
+    # Pin to pre-Rust ChromaDB to avoid Rust bindings crashes
+    # See: https://github.com/chroma-core/chroma/issues/5937
+    "chromadb>=0.4.0,<1.0.0",
     "watchdog>=3.0.0",
     "mcp>=1.0.0",
     "httpx>=0.25.0",

@@ -18,6 +18,36 @@ from platformdirs import user_config_dir, user_data_dir
 APP_NAME = "obsidian-notes-rag"
 
 
+def resolve_path_case(path: str) -> str:
+    """Resolve a path to its correct case on case-insensitive filesystems.
+
+    On macOS, the filesystem is case-insensitive but case-preserving.
+    Watchdog requires the exact case to detect file changes properly.
+    """
+    import sys
+
+    p = Path(path).expanduser()
+    if not p.exists():
+        return path
+
+    # On macOS, use the real path which preserves correct case
+    if sys.platform == "darwin":
+        import subprocess
+        try:
+            # Use realpath command which returns the canonical path with correct case
+            result = subprocess.run(
+                ["realpath", str(p)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+
+    return str(p.resolve())
+
+
 def get_config_dir() -> Path:
     """Get the configuration directory (cross-platform)."""
     return Path(user_config_dir(APP_NAME))
@@ -83,7 +113,9 @@ def load_config() -> Config:
                 data = tomllib.load(f)
 
             config.provider = data.get("provider", config.provider)
-            config.vault_path = data.get("vault_path", config.vault_path)
+            vault_path = data.get("vault_path", config.vault_path)
+            if vault_path:
+                config.vault_path = resolve_path_case(vault_path)
             config.data_path = data.get("data_path", config.data_path)
 
             # OpenAI settings
@@ -108,7 +140,7 @@ def load_config() -> Config:
     if os.environ.get("OBSIDIAN_RAG_PROVIDER"):
         config.provider = os.environ["OBSIDIAN_RAG_PROVIDER"]
     if os.environ.get("OBSIDIAN_RAG_VAULT"):
-        config.vault_path = os.environ["OBSIDIAN_RAG_VAULT"]
+        config.vault_path = resolve_path_case(os.environ["OBSIDIAN_RAG_VAULT"])
     if os.environ.get("OBSIDIAN_RAG_DATA"):
         config.data_path = os.environ["OBSIDIAN_RAG_DATA"]
     if os.environ.get("OBSIDIAN_RAG_OLLAMA_URL"):
@@ -140,7 +172,7 @@ def save_config(config: Config) -> Path:
     }
 
     if config.vault_path:
-        data["vault_path"] = config.vault_path
+        data["vault_path"] = resolve_path_case(config.vault_path)
     if config.data_path:
         data["data_path"] = config.data_path
 
