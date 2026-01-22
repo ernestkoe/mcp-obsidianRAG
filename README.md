@@ -14,7 +14,7 @@ Ask natural language questions about your notes:
 ## Requirements
 
 - Python 3.11+
-- `OPENAI_API_KEY` environment variable (or [Ollama](https://ollama.ai/) for local embeddings)
+- `OPENAI_API_KEY` environment variable, or local embeddings via [Ollama](https://ollama.ai/) or [LM Studio](https://lmstudio.ai/)
 
 ## Quick Start
 
@@ -58,8 +58,8 @@ claude mcp add -s user obsidian-notes-rag -- uv run --directory /path/to/obsidia
 ```
 
 The setup wizard will:
-1. Ask for your embedding provider (OpenAI or Ollama)
-2. Configure your API key (for OpenAI)
+1. Ask for your embedding provider (OpenAI, Ollama, or LM Studio)
+2. Configure your API key (for OpenAI) or local server URL
 3. Set your Obsidian vault path
 4. Choose where to store the search index
 5. Optionally run the initial indexing
@@ -81,6 +81,15 @@ ollama pull nomic-embed-text
 
 # Run setup with Ollama, or index directly:
 uv run obsidian-notes-rag --provider ollama index --vault /path/to/your/vault
+```
+
+### Using LM Studio (local, offline)
+
+```bash
+# Start LM Studio and load an embedding model
+# The server auto-detects available models
+
+uv run obsidian-notes-rag --provider lmstudio index --vault /path/to/your/vault
 ```
 
 ## MCP Tools
@@ -119,6 +128,8 @@ Install as a launchd service that starts on login:
 uv run obsidian-notes-rag install-service
 ```
 
+The service appears as **obsidian-notes-rag-watcher** in System Settings > Login Items & Extensions > App Background Activity, making it easy to identify and manage.
+
 > **Note:** The setup wizard offers to install this service automatically on macOS. Linux/Windows users can run `watch` manually or configure their own systemd/Task Scheduler jobs.
 
 ## CLI Reference
@@ -143,19 +154,21 @@ Set your vault path and provider via CLI options or environment variables:
 # CLI options
 uv run obsidian-notes-rag --vault /path/to/vault index
 uv run obsidian-notes-rag --provider ollama index
+uv run obsidian-notes-rag --provider lmstudio index
 
 # Environment variables
 export OBSIDIAN_RAG_VAULT=/path/to/vault
-export OBSIDIAN_RAG_PROVIDER=ollama  # or "openai" (default)
+export OBSIDIAN_RAG_PROVIDER=ollama  # or "openai" (default) or "lmstudio"
 ```
 
 | Variable | Description |
 |----------|-------------|
 | `OPENAI_API_KEY` | OpenAI API key (required for default provider) |
-| `OBSIDIAN_RAG_PROVIDER` | Embedding provider: `openai` (default) or `ollama` |
+| `OBSIDIAN_RAG_PROVIDER` | Embedding provider: `openai` (default), `ollama`, or `lmstudio` |
 | `OBSIDIAN_RAG_VAULT` | Path to Obsidian vault |
-| `OBSIDIAN_RAG_DATA` | Where to store the index (default: `./data`) |
+| `OBSIDIAN_RAG_DATA` | Where to store the index (default: platform-specific) |
 | `OBSIDIAN_RAG_OLLAMA_URL` | Ollama API URL (default: `http://localhost:11434`) |
+| `OBSIDIAN_RAG_LMSTUDIO_URL` | LM Studio API URL (default: `http://localhost:1234`) |
 | `OBSIDIAN_RAG_MODEL` | Override embedding model |
 
 ## How it works
