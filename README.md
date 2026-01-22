@@ -63,6 +63,7 @@ The setup wizard will:
 3. Set your Obsidian vault path
 4. Choose where to store the search index
 5. Optionally run the initial indexing
+6. Optionally install the watcher service (macOS) for auto-indexing
 
 ### Manual Setup (alternative)
 
@@ -102,17 +103,23 @@ Once connected, these tools are available to Claude:
 uv run obsidian-notes-rag index
 ```
 
-### Option 2: Watch for changes
+### Option 2: Watch for changes (all platforms)
+
+Run the watcher in a terminal to auto-index when files change:
 
 ```bash
 uv run obsidian-notes-rag watch
 ```
 
-### Option 3: Auto-start on login (macOS)
+### Option 3: Background service (macOS only)
+
+Install as a launchd service that starts on login:
 
 ```bash
 uv run obsidian-notes-rag install-service
 ```
+
+> **Note:** The setup wizard offers to install this service automatically on macOS. Linux/Windows users can run `watch` manually or configure their own systemd/Task Scheduler jobs.
 
 ## CLI Reference
 
