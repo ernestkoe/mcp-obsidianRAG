@@ -281,6 +281,9 @@ def setup():
                 if plist_path.exists():
                     subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
 
+                # Install wrapper script (shows descriptive name in System Settings)
+                _install_wrapper_script()
+
                 # Write plist with config values
                 assert config.vault_path is not None  # Set in step 3
                 plist_content = _get_plist_content(
@@ -520,17 +523,44 @@ def serve():
 # Service management
 # TODO: Add Linux systemd support (create .service file in ~/.config/systemd/user/)
 # TODO: Add Windows Task Scheduler support (use schtasks or win32api)
-# TODO: Improve macOS login item appearance (shows as generic "python3" from unidentified developer)
-#       Options: py2app wrapper, Homebrew formula with brew services, or code signing
 PLIST_NAME = "com.obsidian-notes-rag.watcher.plist"
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+WRAPPER_SCRIPT_DIR = Path.home() / ".local" / "bin"
+WRAPPER_SCRIPT_NAME = "obsidian-notes-rag-watcher"
+
+
+def _get_wrapper_script_content() -> str:
+    """Generate wrapper script that calls the watcher module."""
+    import sys
+    python_path = sys.executable
+    return f"""#!/bin/bash
+# Wrapper script for obsidian-notes-rag watcher service
+# This script exists so macOS System Settings shows a descriptive name
+# instead of "python3" in Login Items & Extensions.
+exec "{python_path}" -m obsidian_rag.watcher "$@"
+"""
+
+
+def _install_wrapper_script() -> Path:
+    """Install the wrapper script and return its path."""
+    WRAPPER_SCRIPT_DIR.mkdir(parents=True, exist_ok=True)
+    wrapper_path = WRAPPER_SCRIPT_DIR / WRAPPER_SCRIPT_NAME
+    wrapper_path.write_text(_get_wrapper_script_content())
+    wrapper_path.chmod(0o755)
+    return wrapper_path
+
+
+def _uninstall_wrapper_script():
+    """Remove the wrapper script if it exists."""
+    wrapper_path = WRAPPER_SCRIPT_DIR / WRAPPER_SCRIPT_NAME
+    if wrapper_path.exists():
+        wrapper_path.unlink()
 
 
 def _get_plist_content(vault_path: str, data_path: str, provider: str, ollama_url: str, model: str | None) -> str:
     """Generate launchd plist content."""
-    # Find the obsidian-memory-watch executable
-    import sys
-    python_path = sys.executable
+    # Use wrapper script for better System Settings appearance
+    wrapper_path = WRAPPER_SCRIPT_DIR / WRAPPER_SCRIPT_NAME
 
     # Build environment variables section
     env_vars = f"""        <key>OBSIDIAN_RAG_VAULT</key>
@@ -558,9 +588,7 @@ def _get_plist_content(vault_path: str, data_path: str, provider: str, ollama_ur
     <string>com.obsidian-notes-rag.watcher</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{python_path}</string>
-        <string>-m</string>
-        <string>obsidian_rag.watcher</string>
+        <string>{wrapper_path}</string>
     </array>
     <key>EnvironmentVariables</key>
     <dict>
@@ -606,6 +634,10 @@ def install_service(ctx):
         click.echo("Unloading existing service...")
         subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
 
+    # Install wrapper script (shows descriptive name in System Settings)
+    wrapper_path = _install_wrapper_script()
+    click.echo(f"Created: {wrapper_path}")
+
     # Write plist
     plist_content = _get_plist_content(vault_path, data_path, provider, ollama_url, model)
     plist_path.write_text(plist_content)
@@ -643,6 +675,10 @@ def uninstall_service():
 
     # Remove plist
     plist_path.unlink()
+
+    # Remove wrapper script
+    _uninstall_wrapper_script()
+
     click.echo("Service uninstalled.")
 
 
