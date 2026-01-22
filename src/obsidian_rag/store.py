@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 import chromadb
+from chromadb.api.types import Include
 from chromadb.config import Settings
 
 from .indexer import Chunk
@@ -104,7 +105,7 @@ class VectorStore:
             query_embeddings=[query_embedding],
             n_results=limit,
             where=where,
-            include=["documents", "metadatas", "distances"]
+            include=cast(Include, ["documents", "metadatas", "distances"])
         )
 
         output = []
