@@ -9,6 +9,8 @@ import subprocess
 import sys
 import threading
 import time
+
+import setproctitle
 from collections import deque
 from pathlib import Path
 from typing import Optional
@@ -454,6 +456,9 @@ def run_watcher(
     debounce: float = DEFAULT_DEBOUNCE,
 ):
     """Run the vault watcher (entry point for CLI)."""
+    # Set process title for Activity Monitor visibility
+    setproctitle.setproctitle("obsidian-notes-rag")
+
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
