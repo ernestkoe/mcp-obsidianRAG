@@ -57,6 +57,10 @@ build_command = "uv build"
 commit_message = "chore(release): {version}"
 tag_format = "v{version}"
 
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]
 minor_tags = ["feat"]
@@ -68,3 +72,5 @@ token = { env = "GH_TOKEN" }
 
 [tool.semantic_release.publish]
 upload_to_vcs_release = true
+dist_glob_patterns = ["dist/*"]
+upload_to_pypi = false  # We use trusted publishing via gh-action-pypi-publish instead
