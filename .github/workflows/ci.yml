@@ -23,6 +23,8 @@ jobs:
 
       - name: Type check
         run: uv run pyright
+        env:
+          PYRIGHT_PYTHON_FORCE_VERSION: latest
 
   test:
     runs-on: ubuntu-latest
