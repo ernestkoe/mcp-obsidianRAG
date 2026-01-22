@@ -49,3 +49,22 @@ dev = [
     "pytest>=8.0.0",
     "pyright>=1.1.0",
 ]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+build_command = "uv build"
+commit_message = "chore(release): {version}"
+tag_format = "v{version}"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.remote]
+type = "github"
+token = { env = "GH_TOKEN" }
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = true
