@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.3.0...v0.4.0) (2026-01-22)
+
+
+### Features
+
+* show 'obsidian-notes-rag' in Activity Monitor instead of python3 ([b9c1502](https://github.com/ernestkoe/obsidian-notes-rag/commit/b9c15023d5b4479797c9f1fa85ee9c73f67e74c4))
+* show descriptive name in macOS System Settings ([590d86c](https://github.com/ernestkoe/obsidian-notes-rag/commit/590d86ccedb69fea66f4c0f2a3e1b181bb6820d9))
+
+
+### Bug Fixes
+
+* resolve macOS path case issues and pin ChromaDB version ([e5900c5](https://github.com/ernestkoe/obsidian-notes-rag/commit/e5900c59fdc0df52b4dabbfc81b082d6a8043b25))
+* resolve pyright type error for chromadb Include parameter ([b80b0d9](https://github.com/ernestkoe/obsidian-notes-rag/commit/b80b0d9a8eab3d2d3bab8ec080e6a1205be602a8))
+* resolve pyright type errors ([ebc7a4d](https://github.com/ernestkoe/obsidian-notes-rag/commit/ebc7a4d4651270cd312607af1e117e7e00dcae11))
+
+
+### Documentation
+
+* update README with LM Studio support and service improvements ([c971fa3](https://github.com/ernestkoe/obsidian-notes-rag/commit/c971fa360f4a19395994d7e9b1c134efb5073456))
+
 ## [0.3.0](https://github.com/ernestkoe/obsidian-notes-rag/compare/v0.2.2...v0.3.0) (2026-01-13)
 
 
