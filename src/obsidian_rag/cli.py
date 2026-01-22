@@ -282,6 +282,7 @@ def setup():
                     subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
 
                 # Write plist with config values
+                assert config.vault_path is not None  # Set in step 3
                 plist_content = _get_plist_content(
                     config.vault_path,
                     config.data_path or str(get_data_dir()),

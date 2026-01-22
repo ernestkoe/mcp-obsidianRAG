@@ -12,6 +12,7 @@ from typing import Iterator, Optional, List, Dict, Tuple
 import httpx
 import yaml
 from chonkie import RecursiveChunker
+from chonkie import Chunk as ChonkieChunk
 
 # Maximum tokens per chunk
 # nomic-embed-text context length is 2048 tokens
@@ -79,7 +80,7 @@ def split_oversized_chunk(chunk: Chunk) -> List[Chunk]:
         return [chunk]
 
     chunker = _get_recursive_chunker()
-    sub_chunks = chunker(chunk.content)
+    sub_chunks = chunker.chunk(chunk.content)
 
     if len(sub_chunks) <= 1:
         return [chunk]
@@ -201,8 +202,13 @@ class OpenAIEmbedder:
         self.client = OpenAI()  # Uses OPENAI_API_KEY env var
         self.model = model
 
-    def embed(self, text: str) -> List[float]:
-        """Generate embedding for a single text."""
+    def embed(self, text: str, task_type: str = "search_document") -> List[float]:
+        """Generate embedding for a single text.
+
+        Args:
+            text: Text to embed
+            task_type: Ignored for OpenAI (included for interface consistency)
+        """
         response = self.client.embeddings.create(input=text, model=self.model)
         return response.data[0].embedding
 
