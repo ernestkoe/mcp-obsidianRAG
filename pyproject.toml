@@ -53,7 +53,6 @@ dev = [
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 branch = "main"
-build_command = "uv build"
 commit_message = "chore(release): {version}"
 tag_format = "v{version}"
 
