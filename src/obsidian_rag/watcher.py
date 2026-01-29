@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import logging.handlers
 import os
 import signal
 import subprocess
@@ -14,6 +15,10 @@ import setproctitle
 from collections import deque
 from pathlib import Path
 from typing import Optional
+
+# Log rotation settings
+MAX_LOG_BYTES = 10 * 1024 * 1024  # 10 MB per log file
+LOG_BACKUP_COUNT = 3  # Keep 3 rotated files
 
 import httpx
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -446,6 +451,41 @@ class VaultWatcher:
             self.stop()
 
 
+def _setup_logging():
+    """Configure logging with rotation when running as a service."""
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+    date_format = "%Y-%m-%d %H:%M:%S"
+
+    # Check if we're running as a service (stderr redirected to file)
+    log_dir = Path.home() / "Library" / "Logs" / "obsidian-notes-rag"
+
+    if not sys.stderr.isatty() and log_dir.exists():
+        # Running as service - use rotating file handler
+        log_file = log_dir / "watcher.log"
+        handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=MAX_LOG_BYTES,
+            backupCount=LOG_BACKUP_COUNT,
+        )
+        handler.setFormatter(logging.Formatter(log_format, date_format))
+
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+        root_logger.addHandler(handler)
+
+        # Also add a stream handler for launchd's stderr capture
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(logging.Formatter(log_format, date_format))
+        root_logger.addHandler(stream_handler)
+    else:
+        # Interactive mode - simple console logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format=log_format,
+            datefmt=date_format,
+        )
+
+
 def run_watcher(
     vault_path: str = DEFAULT_VAULT_PATH,
     data_path: str = DEFAULT_DATA_PATH,
@@ -459,12 +499,8 @@ def run_watcher(
     # Set process title for Activity Monitor visibility
     setproctitle.setproctitle("obsidian-notes-rag")
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    # Configure logging with rotation support
+    _setup_logging()
 
     watcher = VaultWatcher(
         vault_path=vault_path,

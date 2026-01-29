@@ -43,11 +43,17 @@
     <key>KeepAlive</key>
     <true/>
 
+    <!-- Prevent crash loops from filling disk with logs -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Logs go to ~/Library/Logs/obsidian-notes-rag/ -->
+    <!-- Create this directory before loading the service -->
     <key>StandardOutPath</key>
-    <string>/tmp/obsidian-rag.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/obsidian-notes-rag/watcher.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/obsidian-rag.err</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/obsidian-notes-rag/watcher.err</string>
 
     <key>WorkingDirectory</key>
     <string>/path/to/obsidian-rag</string>

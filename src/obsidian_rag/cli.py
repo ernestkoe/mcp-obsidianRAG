@@ -527,6 +527,7 @@ PLIST_NAME = "com.obsidian-notes-rag.watcher.plist"
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
 WRAPPER_SCRIPT_DIR = Path.home() / ".local" / "bin"
 WRAPPER_SCRIPT_NAME = "obsidian-notes-rag-watcher"
+LOG_DIR = Path.home() / "Library" / "Logs" / "obsidian-notes-rag"
 
 
 def _get_wrapper_script_content() -> str:
@@ -598,10 +599,12 @@ def _get_plist_content(vault_path: str, data_path: str, provider: str, ollama_ur
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
     <key>StandardOutPath</key>
-    <string>/tmp/obsidian-notes-rag.log</string>
+    <string>{LOG_DIR}/watcher.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/obsidian-notes-rag.err</string>
+    <string>{LOG_DIR}/watcher.err</string>
     <key>WorkingDirectory</key>
     <string>{Path.cwd()}</string>
 </dict>
@@ -626,8 +629,9 @@ def install_service(ctx):
 
     plist_path = LAUNCH_AGENTS_DIR / PLIST_NAME
 
-    # Create LaunchAgents directory if needed
+    # Create directories if needed
     LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     # Unload existing service if present
     if plist_path.exists():
@@ -650,8 +654,8 @@ def install_service(ctx):
         sys.exit(1)
 
     click.echo("Service installed and started.")
-    click.echo("Logs: /tmp/obsidian-notes-rag.log")
-    click.echo("Errors: /tmp/obsidian-notes-rag.err")
+    click.echo(f"Logs: {LOG_DIR}/watcher.log")
+    click.echo(f"Errors: {LOG_DIR}/watcher.err")
 
 
 @main.command("uninstall-service")
