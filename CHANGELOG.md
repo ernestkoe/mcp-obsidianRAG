@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.4.2 (2026-01-29)
+
+### Bug Fixes
+
+- Prevent crash loop from filling disk with logs
+  ([`0388bc8`](https://github.com/ernestkoe/obsidian-notes-rag/commit/0388bc8c1ac8e9e4cb07643b1e9dd38cc498af28))
+
+Add ThrottleInterval (30s) to launchd plist to prevent rapid restarts from generating massive log
+  files. Move logs from /tmp to proper macOS location ~/Library/Logs/obsidian-notes-rag/ and add
+  rotating file handler (10MB max, 3 backups) to cap total log size at ~40MB.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+
 ## v0.4.1 (2026-01-22)
 
 ### Bug Fixes
