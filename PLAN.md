@@ -16,7 +16,7 @@ Build a local vector store system for Obsidian notes that enables semantic searc
 │   Indexer Service   │  Background daemon
 │   • Parse markdown  │
 │   • Chunk by heading│
-│   • Generate embeds │  via Ollama (nomic-embed-text)
+│   • Generate embeds │  via Ollama/OpenAI/LMStudio/CoreML
 └──────────┬──────────┘
            │
            ▼
@@ -108,9 +108,13 @@ exclude = ["attachments/**", ".obsidian/**"]
 - `chromadb` - Vector store
 - `watchdog` - File system monitoring
 - `mcp` - Model Context Protocol SDK
-- `httpx` - Ollama API calls
+- `httpx` - Ollama/LMStudio API calls
+- `openai` - OpenAI embeddings
 - `pyyaml` - Frontmatter parsing
 - `click` - CLI framework
+
+**Optional:**
+- `coremltools` - CoreML model conversion (for `[coreml]` extra)
 
 ## Implementation Phases
 
@@ -136,6 +140,37 @@ exclude = ["attachments/**", ".obsidian/**"]
 1. Handle edge cases (empty files, binary files, etc.)
 2. Add stats/health endpoints
 3. Optimize chunking strategy based on real usage
+
+### Phase 5: CoreML Embedding Provider (Future)
+Add native macOS embedding support to eliminate external dependencies.
+
+**Goals:**
+- No need for Ollama or OpenAI API
+- Runs on Neural Engine (power efficient on Apple Silicon)
+- Fully offline operation
+
+**Approach:**
+1. Convert `all-MiniLM-L6-v2` (22M params) to CoreML format using `coremltools`
+2. Add `coreml` as a provider option alongside openai/ollama/lmstudio
+3. Create `CoreMLEmbedder` class following existing embedder pattern
+4. Bundle or download the converted model on first use
+
+**Tradeoffs:**
+| Aspect | CoreML | Ollama/nomic-embed-text |
+|--------|--------|-------------------------|
+| Quality | Good (MiniLM) | Better (nomic) |
+| Dependencies | None | Ollama running |
+| Power usage | Low (Neural Engine) | Higher |
+| Model size | ~90MB | ~270MB |
+
+**Alternative models:**
+- `bge-small-en-v1.5` - similar size, slightly better quality
+- Apple's built-in `NLEmbedding` - zero dependencies but older/lower quality
+
+**Implementation notes:**
+- Add `coremltools` as optional dependency: `pip install obsidian-notes-rag[coreml]`
+- Model stored in `~/Library/Application Support/obsidian-notes-rag/models/`
+- First-run downloads or converts the model
 
 ## Design Decisions
 
