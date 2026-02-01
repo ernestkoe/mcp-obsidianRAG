@@ -188,6 +188,10 @@ class NoteEventHandler(FileSystemEventHandler):
         if not path.suffix == ".md":
             return True
 
+        # Ignore Obsidian temp/recovery files (pattern: .!NNNNN!filename.md)
+        if path.name.startswith(".!") and "!" in path.name[2:]:
+            return True
+
         try:
             rel_path = path.relative_to(self.vault_path)
         except ValueError:
@@ -206,6 +210,10 @@ class NoteEventHandler(FileSystemEventHandler):
     def _index_file(self, path: Path):
         """Index or re-index a single file."""
         if self._should_ignore(path):
+            return
+
+        # Check file exists before attempting to index (avoids retry loops for deleted files)
+        if not path.exists():
             return
 
         rel_path = self._get_relative_path(path)
@@ -473,10 +481,8 @@ def _setup_logging():
         root_logger.setLevel(logging.INFO)
         root_logger.addHandler(handler)
 
-        # Also add a stream handler for launchd's stderr capture
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter(log_format, date_format))
-        root_logger.addHandler(stream_handler)
+        # Note: We intentionally don't add a StreamHandler when running as a service.
+        # launchd captures stderr to watcher.err without rotation, which can grow unbounded.
     else:
         # Interactive mode - simple console logging
         logging.basicConfig(
