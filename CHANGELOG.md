@@ -1,6 +1,35 @@
 # CHANGELOG
 
 
+## v0.4.3 (2026-02-01)
+
+### Bug Fixes
+
+- Prevent infinite retry loop for deleted/temp files
+  ([`8d01202`](https://github.com/ernestkoe/obsidian-notes-rag/commit/8d01202b36103b92feeba51f7d4710c47580dd4a))
+
+- Check file exists before indexing to avoid retry loops for deleted files - Filter Obsidian
+  temp/recovery files (.!NNNNN!filename.md pattern) - Remove duplicate StreamHandler to prevent
+  unbounded stderr log growth
+
+The retry mechanism had a flaw where _index_file() caught exceptions and called retry_queue.add()
+  with attempt=0, preventing the attempt counter from ever incrementing. This caused deleted files
+  to retry forever, filling watcher.err to 47GB.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+### Documentation
+
+- Add Phase 5 CoreML embedding provider to roadmap
+  ([`4574ffb`](https://github.com/ernestkoe/obsidian-notes-rag/commit/4574ffb3502ab22dca80e30b63a5a9a778deb266))
+
+Document future plan to add native macOS embedding support using CoreML. This would eliminate
+  Ollama/OpenAI dependency, run on Neural Engine, and enable fully offline operation. Includes
+  tradeoffs analysis and implementation notes.
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+
 ## v0.4.2 (2026-01-29)
 
 ### Bug Fixes
