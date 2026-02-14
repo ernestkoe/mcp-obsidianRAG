@@ -318,8 +318,9 @@ def setup():
 
 @main.command()
 @click.option("--clear", is_flag=True, help="Clear existing index before indexing")
+@click.option("--path-filter", default=None, help="Only index files under this path prefix (e.g. 'Daily Notes/')")
 @click.pass_context
-def index(ctx, clear):
+def index(ctx, clear, path_filter):
     """Index all markdown files in the vault."""
     vault_path = ctx.obj["vault"]
     data_path = ctx.obj["data"]
@@ -363,6 +364,10 @@ def index(ctx, clear):
     # Count files first
     files = list(indexer.iter_markdown_files())
     click.echo(f"Found {len(files)} markdown files")
+
+    if path_filter:
+        files = [f for f in files if str(f.relative_to(indexer.vault_path)).startswith(path_filter)]
+        click.echo(f"Filtered to {len(files)} files matching '{path_filter}'")
 
     # Index with progress
     chunk_count = 0
