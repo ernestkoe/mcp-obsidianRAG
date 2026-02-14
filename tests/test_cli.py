@@ -44,3 +44,29 @@ class TestSimilarCommand:
             result = runner.invoke(main, ["similar", "test.md"])
             assert result.exit_code == 0
             assert "other.md" in result.output
+
+
+class TestContextCommand:
+    def test_context_shows_note_and_similar(self):
+        """Verify context command shows note content and similar notes."""
+        runner = CliRunner()
+        with patch("obsidian_rag.cli.create_embedder") as mock_embedder, \
+             patch("obsidian_rag.cli.VectorStore") as mock_store:
+            embedder_instance = MagicMock()
+            embedder_instance.embed.return_value = [0.1] * 1536
+            embedder_instance.close = MagicMock()
+            mock_embedder.return_value = embedder_instance
+
+            store_instance = MagicMock()
+            store_instance.search.side_effect = [
+                # First call: get note chunks
+                [{"content": "Note content here", "metadata": {"file_path": "test.md", "heading": ""}, "distance": 0.0}],
+                # Second call: find similar notes
+                [{"content": "Related note", "metadata": {"file_path": "related.md", "heading": "Intro"}, "distance": 0.3}],
+            ]
+            mock_store.return_value = store_instance
+
+            result = runner.invoke(main, ["context", "test.md"])
+            assert result.exit_code == 0
+            assert "Note content here" in result.output
+            assert "related.md" in result.output

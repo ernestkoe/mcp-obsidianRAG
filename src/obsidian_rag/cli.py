@@ -547,6 +547,79 @@ def similar(ctx, note_path, limit):
 
 
 @main.command()
+@click.argument("note_path")
+@click.option("--limit", "-n", default=5, help="Number of similar notes to include")
+@click.pass_context
+def context(ctx, note_path, limit):
+    """Get a note and its related context."""
+    data_path = ctx.obj["data"]
+    provider = ctx.obj["provider"]
+    ollama_url = ctx.obj["ollama_url"]
+    lmstudio_url = ctx.obj["lmstudio_url"]
+    config = ctx.obj["config"]
+
+    model = ctx.obj["model"]
+    if model is None:
+        if provider == "openai":
+            model = config.openai_model
+        elif provider == "ollama":
+            model = config.ollama_model
+        elif provider == "lmstudio":
+            model = config.lmstudio_model
+
+    if provider == "ollama":
+        base_url = ollama_url
+    elif provider == "lmstudio":
+        base_url = lmstudio_url
+    else:
+        base_url = None
+
+    embedder = create_embedder(provider=provider, model=model, base_url=base_url)
+    store = VectorStore(data_path=data_path)
+
+    click.echo(f"Getting context for: {note_path}\n")
+    results = store.search(
+        query_embedding=embedder.embed(note_path),
+        limit=50,
+        where={"file_path": note_path}
+    )
+
+    if not results:
+        click.echo(f"Note not found in index: {note_path}")
+        embedder.close()
+        return
+
+    # Display note content
+    note_content = "\n\n".join(r["content"] for r in results)
+    click.echo(f"{'═' * 60}")
+    click.echo(f"Note: {note_path}")
+    click.echo(f"{'═' * 60}")
+    click.echo(note_content)
+    click.echo()
+
+    # Find similar notes
+    note_embedding = embedder.embed(note_content[:8000])
+    all_results = store.search(note_embedding, limit=limit + 10)
+    similar_notes = [r for r in all_results if r["metadata"]["file_path"] != note_path][:limit]
+
+    if similar_notes:
+        click.echo(f"{'─' * 60}")
+        click.echo(f"Related Notes ({len(similar_notes)})")
+        click.echo(f"{'─' * 60}")
+        for i, result in enumerate(similar_notes, 1):
+            meta = result["metadata"]
+            similarity = 1 - result["distance"]
+            click.echo(f"  [{i}] {meta['file_path']}")
+            if meta.get("heading"):
+                click.echo(f"      Section: {meta['heading']}")
+            click.echo(f"      Similarity: {similarity:.2%}")
+    else:
+        click.echo("No related notes found.")
+
+    embedder.close()
+
+
+@main.command()
 @click.pass_context
 def stats(ctx):
     """Show index statistics."""
