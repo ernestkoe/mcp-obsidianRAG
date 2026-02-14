@@ -477,6 +477,76 @@ def search(ctx, query, limit, note_type):
 
 
 @main.command()
+@click.argument("note_path")
+@click.option("--limit", "-n", default=5, help="Number of similar notes")
+@click.pass_context
+def similar(ctx, note_path, limit):
+    """Find notes similar to a given note."""
+    data_path = ctx.obj["data"]
+    provider = ctx.obj["provider"]
+    ollama_url = ctx.obj["ollama_url"]
+    lmstudio_url = ctx.obj["lmstudio_url"]
+    config = ctx.obj["config"]
+
+    model = ctx.obj["model"]
+    if model is None:
+        if provider == "openai":
+            model = config.openai_model
+        elif provider == "ollama":
+            model = config.ollama_model
+        elif provider == "lmstudio":
+            model = config.lmstudio_model
+
+    if provider == "ollama":
+        base_url = ollama_url
+    elif provider == "lmstudio":
+        base_url = lmstudio_url
+    else:
+        base_url = None
+
+    embedder = create_embedder(provider=provider, model=model, base_url=base_url)
+    store = VectorStore(data_path=data_path)
+
+    click.echo(f"Finding notes similar to: {note_path}\n")
+    results = store.search(
+        query_embedding=embedder.embed(note_path),
+        limit=50,
+        where={"file_path": note_path}
+    )
+
+    if not results:
+        click.echo(f"Note not found in index: {note_path}")
+        embedder.close()
+        return
+
+    note_content = "\n\n".join(r["content"] for r in results)
+    note_embedding = embedder.embed(note_content[:8000])
+    all_results = store.search(note_embedding, limit=limit + 10)
+
+    similar_notes = [r for r in all_results if r["metadata"]["file_path"] != note_path][:limit]
+
+    if not similar_notes:
+        click.echo("No similar notes found.")
+        embedder.close()
+        return
+
+    for i, result in enumerate(similar_notes, 1):
+        meta = result["metadata"]
+        similarity = 1 - result["distance"]
+        click.echo(f"{'─' * 60}")
+        click.echo(f"[{i}] {meta['file_path']}")
+        if meta.get("heading"):
+            click.echo(f"    Section: {meta['heading']}")
+        click.echo(f"    Similarity: {similarity:.2%}")
+        content = result["content"]
+        if len(content) > 200:
+            content = content[:200] + "..."
+        click.echo(f"\n    {content}\n")
+
+    embedder.close()
+
+
+@main.command()
 @click.pass_context
 def stats(ctx):
     """Show index statistics."""

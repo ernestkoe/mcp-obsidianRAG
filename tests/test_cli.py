@@ -21,3 +21,26 @@ class TestIndexCommand:
 
             result = runner.invoke(main, ["index", "--path-filter", "Daily Notes/"])
             assert result.exit_code == 0
+
+
+class TestSimilarCommand:
+    def test_similar_shows_results(self):
+        """Verify similar command accepts note-path and displays results."""
+        runner = CliRunner()
+        with patch("obsidian_rag.cli.create_embedder") as mock_embedder, \
+             patch("obsidian_rag.cli.VectorStore") as mock_store:
+            embedder_instance = MagicMock()
+            embedder_instance.embed.return_value = [0.1] * 1536
+            embedder_instance.close = MagicMock()
+            mock_embedder.return_value = embedder_instance
+
+            store_instance = MagicMock()
+            store_instance.search.side_effect = [
+                [{"content": "Note content", "metadata": {"file_path": "test.md", "heading": ""}, "distance": 0.0}],
+                [{"content": "Similar note", "metadata": {"file_path": "other.md", "heading": "Section"}, "distance": 0.2}],
+            ]
+            mock_store.return_value = store_instance
+
+            result = runner.invoke(main, ["similar", "test.md"])
+            assert result.exit_code == 0
+            assert "other.md" in result.output
