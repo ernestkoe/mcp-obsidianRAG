@@ -76,6 +76,18 @@ uv tool install obsidian-notes-rag
 
 This installs both `obsidian-rag` and `obsidian-notes-rag` to `~/.local/bin/`.
 
+### Using the CLI with AI coding assistants
+
+Instead of running the MCP server, you can have your AI assistant call the CLI directly via shell commands. This avoids loading MCP tool definitions into the context window, freeing up tokens for your actual work.
+
+To do this, create a rule or skill that tells your assistant when and how to use the CLI:
+
+- **Claude Code**: Create a [skill](https://docs.anthropic.com/en/docs/claude-code/skills) with CLI usage instructions
+- **Cursor**: Add a [rule](https://docs.cursor.com/context/rules) to `.cursor/rules/`
+- **Windsurf**: Add a [rule](https://docs.windsurf.com/windsurf/memories#rules) to `.windsurfrules`
+
+The rule should describe when to use each command (`search`, `similar`, `context`) and any project-specific conventions. This gives the assistant enough context to run the right CLI commands without the overhead of an MCP connection.
+
 ## CLI Reference
 
 ```bash
