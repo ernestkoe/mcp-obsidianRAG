@@ -15,7 +15,7 @@ obsidian-rag similar "Projects/Platform Hub.md"
 obsidian-rag context "Daily Notes/2026-02-14.md"
 ```
 
-As an MCP server, it gives Claude the same capabilities — Claude can search your notes, find related content, and pull context during conversations.
+As an MCP server, it gives any compatible AI assistant the same capabilities — searching your notes, finding related content, and pulling context during conversations.
 
 ## Requirements
 
@@ -41,17 +41,19 @@ uvx obsidian-notes-rag index
 
 Parses your markdown files, chunks them by heading structure (using [Chonkie](https://github.com/chonkie-ai/chonkie) RecursiveChunker), generates embeddings, and stores everything in a local SQLite database.
 
-### 3. Connect to Claude
+### 3. Connect to an MCP client
 
-**Claude Code (CLI):**
+Works with any MCP-compatible client. Examples:
+
+**Claude Code:**
 
 ```bash
 claude mcp add -s user obsidian-notes-rag -- uvx obsidian-notes-rag serve
 ```
 
-**Claude Desktop (JSON config):**
+**Claude Desktop, Cursor, Windsurf, etc. (JSON config):**
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+Add to your client's MCP config file (e.g. `~/Library/Application Support/Claude/claude_desktop_config.json` for Claude Desktop on macOS):
 
 ```json
 {
@@ -104,7 +106,7 @@ obsidian-rag service-status                   # check service status
 
 ## MCP Tools
 
-Once connected, Claude has access to:
+Once connected, your AI assistant has access to:
 
 | Tool | What it does |
 |------|--------------|
