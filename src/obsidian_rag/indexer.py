@@ -10,7 +10,8 @@ from typing import Iterator, Optional, List, Dict, Tuple
 
 import httpx
 import yaml
-from chonkie import RecursiveChunker, RecursiveRules
+from chonkie import RecursiveChunker
+from chonkie.types.recursive import RecursiveLevel, RecursiveRules
 
 # Maximum tokens per chunk
 # nomic-embed-text context length is 2048 tokens
@@ -54,9 +55,20 @@ def _get_chunker() -> RecursiveChunker:
     """Get or create the shared RecursiveChunker instance."""
     global _chunker
     if _chunker is None:
+        # Markdown-aware splitting rules: headings > paragraphs > lines > sentences
+        markdown_rules = RecursiveRules(levels=[
+            RecursiveLevel(delimiters="\n# ", include_delim="next"),       # h1
+            RecursiveLevel(delimiters="\n## ", include_delim="next"),      # h2
+            RecursiveLevel(delimiters="\n### ", include_delim="next"),     # h3
+            RecursiveLevel(delimiters="\n#### ", include_delim="next"),    # h4
+            RecursiveLevel(delimiters="\n\n"),                             # paragraphs
+            RecursiveLevel(delimiters="\n"),                               # lines
+            RecursiveLevel(delimiters=[". ", "! ", "? "]),                 # sentences
+            RecursiveLevel(whitespace=True),                              # words
+        ])
         _chunker = RecursiveChunker(
             chunk_size=MAX_CHUNK_TOKENS,
-            rules=RecursiveRules.from_recipe("markdown"),
+            rules=markdown_rules,
             min_characters_per_chunk=50,
         )
     return _chunker
