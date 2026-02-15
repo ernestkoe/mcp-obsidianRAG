@@ -189,6 +189,24 @@ class VectorStore:
             })
         return results
 
+    def get_by_file(self, file_path: str) -> List[Dict]:
+        """Get all chunks for a file path (direct lookup, no vector search)."""
+        rows = self.db.execute("""
+            SELECT id, file_path, heading, heading_level, type, tags, content
+            FROM chunks WHERE file_path = ?
+        """, (file_path,)).fetchall()
+        return [{
+            "id": row[0],
+            "metadata": {
+                "file_path": row[1],
+                "heading": row[2] or "",
+                "heading_level": row[3],
+                "type": row[4] or "note",
+                "tags": row[5] or "",
+            },
+            "content": row[6],
+        } for row in rows]
+
     def get_stats(self) -> dict:
         """Get collection statistics."""
         count = self.db.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]

@@ -508,11 +508,7 @@ def similar(ctx, note_path, limit):
     store = VectorStore(data_path=data_path)
 
     click.echo(f"Finding notes similar to: {note_path}\n")
-    results = store.search(
-        query_embedding=embedder.embed(note_path),
-        limit=50,
-        where={"file_path": note_path}
-    )
+    results = store.get_by_file(note_path)
 
     if not results:
         click.echo(f"Note not found in index: {note_path}")
@@ -578,11 +574,7 @@ def context(ctx, note_path, limit):
     store = VectorStore(data_path=data_path)
 
     click.echo(f"Getting context for: {note_path}\n")
-    results = store.search(
-        query_embedding=embedder.embed(note_path),
-        limit=50,
-        where={"file_path": note_path}
-    )
+    results = store.get_by_file(note_path)
 
     if not results:
         click.echo(f"Note not found in index: {note_path}")

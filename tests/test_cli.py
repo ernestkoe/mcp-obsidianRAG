@@ -35,9 +35,11 @@ class TestSimilarCommand:
             mock_embedder.return_value = embedder_instance
 
             store_instance = MagicMock()
-            store_instance.search.side_effect = [
-                [{"content": "Note content", "metadata": {"file_path": "test.md", "heading": ""}, "distance": 0.0}],
-                [{"content": "Similar note", "metadata": {"file_path": "other.md", "heading": "Section"}, "distance": 0.2}],
+            store_instance.get_by_file.return_value = [
+                {"content": "Note content", "metadata": {"file_path": "test.md", "heading": ""}}
+            ]
+            store_instance.search.return_value = [
+                {"content": "Similar note", "metadata": {"file_path": "other.md", "heading": "Section"}, "distance": 0.2}
             ]
             mock_store.return_value = store_instance
 
@@ -58,11 +60,11 @@ class TestContextCommand:
             mock_embedder.return_value = embedder_instance
 
             store_instance = MagicMock()
-            store_instance.search.side_effect = [
-                # First call: get note chunks
-                [{"content": "Note content here", "metadata": {"file_path": "test.md", "heading": ""}, "distance": 0.0}],
-                # Second call: find similar notes
-                [{"content": "Related note", "metadata": {"file_path": "related.md", "heading": "Intro"}, "distance": 0.3}],
+            store_instance.get_by_file.return_value = [
+                {"content": "Note content here", "metadata": {"file_path": "test.md", "heading": ""}}
+            ]
+            store_instance.search.return_value = [
+                {"content": "Related note", "metadata": {"file_path": "related.md", "heading": "Intro"}, "distance": 0.3}
             ]
             mock_store.return_value = store_instance
 

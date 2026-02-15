@@ -154,6 +154,33 @@ class TestSearch:
         assert results == []
 
 
+class TestGetByFile:
+    def test_get_by_file(self, store):
+        """Returns all chunks for a given file_path without vector search."""
+        chunks = [
+            make_chunk("c1", "First chunk", "target.md"),
+            make_chunk("c2", "Second chunk", "target.md"),
+            make_chunk("c3", "Other file", "other.md"),
+        ]
+        embeddings = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+        ]
+        store.upsert_batch(chunks, embeddings)
+
+        results = store.get_by_file("target.md")
+        assert len(results) == 2
+        assert all(r["metadata"]["file_path"] == "target.md" for r in results)
+        contents = {r["content"] for r in results}
+        assert contents == {"First chunk", "Second chunk"}
+
+    def test_get_by_file_not_found(self, store):
+        """Returns empty list for non-existent file."""
+        results = store.get_by_file("nonexistent.md")
+        assert results == []
+
+
 class TestDelete:
     def test_delete_by_file(self, store):
         """Deletes all chunks for a given file_path."""
