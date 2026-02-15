@@ -235,7 +235,7 @@ def setup():
                     base_url=config.lmstudio_url
                 )
 
-            store = VectorStore(data_path=config.data_path)
+            store = VectorStore(data_path=config.get_data_path())
             indexer = VaultIndexer(vault_path=config.vault_path, embedder=embedder)
 
             files = list(indexer.iter_markdown_files())
