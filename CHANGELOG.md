@@ -1,6 +1,44 @@
 # CHANGELOG
 
 
+## v1.0.1 (2026-02-15)
+
+### Bug Fixes
+
+- Use get_data_path() to resolve Optional[str] type error
+  ([`db4629e`](https://github.com/ernestkoe/obsidian-notes-rag/commit/db4629e9877f5fbbe70923dab68ab871076599a5))
+
+config.data_path is Optional[str] but VectorStore.__init__ requires str. Use the existing
+  get_data_path() method which handles the None fallback.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+### Documentation
+
+- Add general upgrade instructions to README
+  ([`0073d54`](https://github.com/ernestkoe/obsidian-notes-rag/commit/0073d5492001b2fd1d2ffb30256a29fbec913d56))
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+- Add guidance on using CLI with AI coding assistants
+  ([`d5b01c5`](https://github.com/ernestkoe/obsidian-notes-rag/commit/d5b01c524a54dd30497c8c0d1123ba8cb4de0d13))
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+- Make README MCP-client-agnostic
+  ([`4a57b03`](https://github.com/ernestkoe/obsidian-notes-rag/commit/4a57b037f88eaaf6c9a411b2e48c5847464dfa24))
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+- Update README for v1.0.0
+  ([`f3955d1`](https://github.com/ernestkoe/obsidian-notes-rag/commit/f3955d18efd8458f3e218270067c3ab6ead79db2))
+
+Reflects sqlite-vec backend, CLI commands (search, similar, context), Chonkie chunker, uv tool
+  install, and upgrade instructions.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+
 ## v1.0.0 (2026-02-15)
 
 ### Features
