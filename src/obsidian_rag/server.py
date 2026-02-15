@@ -120,13 +120,8 @@ def get_similar(note_path: str, limit: int = 5) -> list[dict]:
     embedder = get_embedder()
     store = get_store()
 
-    # Get all chunks from this note by searching with file_path filter
-    # First, we need to get the note content to embed
-    results = store.search(
-        query_embedding=embedder.embed(note_path),  # Dummy search to get note
-        limit=50,
-        where={"file_path": note_path}
-    )
+    # Get all chunks from this note by direct lookup
+    results = store.get_by_file(note_path)
 
     if not results:
         return [{"error": f"Note not found: {note_path}"}]
@@ -171,14 +166,8 @@ def get_note_context(note_path: str, limit: int = 5) -> dict:
     embedder = get_embedder()
     store = get_store()
 
-    # Search for chunks from this specific file
-    # Use a generic embedding and filter by file_path
-    dummy_embedding = embedder.embed(note_path)
-    results = store.search(
-        query_embedding=dummy_embedding,
-        limit=50,
-        where={"file_path": note_path}
-    )
+    # Get all chunks from this file by direct lookup
+    results = store.get_by_file(note_path)
 
     if not results:
         return {"error": f"Note not found: {note_path}"}

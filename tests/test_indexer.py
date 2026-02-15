@@ -2,7 +2,7 @@
 
 import pytest
 
-from obsidian_rag.indexer import chunk_by_heading, parse_frontmatter
+from obsidian_rag.indexer import chunk_markdown, parse_frontmatter
 
 
 class TestParseFrontmatter:
@@ -38,40 +38,56 @@ Content here."""
         assert frontmatter == {}
 
 
-class TestChunkByHeading:
+class TestChunkMarkdown:
     def test_single_chunk_no_headings(self):
+        """Short content without headings becomes one chunk."""
         content = "This is a simple note without headings."
-        chunks = chunk_by_heading(content, "test.md")
+        chunks = chunk_markdown(content, "test.md")
         assert len(chunks) == 1
-        assert chunks[0].content == content
-        assert chunks[0].heading is None
+        assert "simple note" in chunks[0].content
 
-    def test_multiple_headings(self):
-        content = """## First Section
+    def test_splits_on_headings(self):
+        """Content with headings gets split at heading boundaries when large enough."""
+        # Each section needs enough content to exceed chunk_size when combined
+        section_text = "This is filler content for the section. " * 50
+        content = f"""## First Section
 
-Content for first section.
+{section_text}
 
 ## Second Section
 
-Content for second section."""
-        chunks = chunk_by_heading(content, "test.md", min_chunk_size=10)
-        assert len(chunks) == 2
-        assert chunks[0].heading == "First Section"
-        assert chunks[1].heading == "Second Section"
-
-    def test_respects_min_chunk_size(self):
-        content = """## Short
-
-Hi
-
-## Longer Section
-
-This is a longer section with more content."""
-        chunks = chunk_by_heading(content, "test.md", min_chunk_size=100)
-        # Short section should be merged
-        assert len(chunks) <= 2
+{section_text}"""
+        chunks = chunk_markdown(content, "test.md")
+        assert len(chunks) >= 2
 
     def test_preserves_file_path(self):
-        content = "## Test\n\nContent here."
-        chunks = chunk_by_heading(content, "notes/test.md", min_chunk_size=10)
+        content = "## Test\n\nContent here that is long enough."
+        chunks = chunk_markdown(content, "notes/test.md")
         assert all(c.file_path == "notes/test.md" for c in chunks)
+
+    def test_extracts_frontmatter(self):
+        """Frontmatter is parsed and stored in metadata, not in chunk content."""
+        content = """---
+tags:
+  - project
+---
+
+## Section
+
+Actual content here."""
+        chunks = chunk_markdown(content, "test.md")
+        assert len(chunks) >= 1
+        # Frontmatter should not appear in chunk content
+        assert "---" not in chunks[0].content or "tags" not in chunks[0].content
+
+    def test_assigns_type_metadata(self):
+        """Chunks get type metadata based on file path."""
+        daily = chunk_markdown("Some content here.", "Daily Notes/2026-01-01.md")
+        note = chunk_markdown("Some content here.", "Projects/foo.md")
+        assert daily[0].metadata["type"] == "daily"
+        assert note[0].metadata["type"] == "note"
+
+    def test_empty_content_returns_empty(self):
+        """Empty or whitespace-only content returns no chunks."""
+        assert chunk_markdown("", "test.md") == []
+        assert chunk_markdown("   \n\n  ", "test.md") == []
