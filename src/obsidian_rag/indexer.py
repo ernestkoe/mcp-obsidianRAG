@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,8 +10,7 @@ from typing import Iterator, Optional, List, Dict, Tuple
 
 import httpx
 import yaml
-from chonkie import RecursiveChunker
-from chonkie import Chunk as ChonkieChunk
+from chonkie import RecursiveChunker, RecursiveRules
 
 # Maximum tokens per chunk
 # nomic-embed-text context length is 2048 tokens
@@ -49,141 +47,74 @@ def parse_frontmatter(content: str) -> Tuple[Dict, str]:
     return frontmatter, parts[2].strip()
 
 
-# Lazy-initialized chunker for splitting oversized content
-_recursive_chunker: Optional[RecursiveChunker] = None
+_chunker: Optional[RecursiveChunker] = None
 
 
-def _get_recursive_chunker() -> RecursiveChunker:
-    """Get or create the RecursiveChunker instance."""
-    global _recursive_chunker
-    if _recursive_chunker is None:
-        # Use gpt2 tokenizer for accurate token counting
-        _recursive_chunker = RecursiveChunker(
+def _get_chunker() -> RecursiveChunker:
+    """Get or create the shared RecursiveChunker instance."""
+    global _chunker
+    if _chunker is None:
+        _chunker = RecursiveChunker(
             chunk_size=MAX_CHUNK_TOKENS,
-            tokenizer="gpt2"
+            rules=RecursiveRules.from_recipe("markdown"),
+            min_characters_per_chunk=50,
         )
-    return _recursive_chunker
+    return _chunker
 
 
-def split_oversized_chunk(chunk: Chunk) -> List[Chunk]:
-    """Split a chunk that exceeds MAX_CHUNK_TOKENS using Chonkie.
+def chunk_markdown(content: str, file_path: str) -> List[Chunk]:
+    """Split markdown content into chunks using Chonkie RecursiveChunker.
 
     Args:
-        chunk: The oversized Chunk to split
-
-    Returns:
-        List of smaller Chunk objects, or [chunk] if already small enough
-    """
-    # Quick estimate: ~4 chars per token on average
-    estimated_tokens = len(chunk.content) // 4
-    if estimated_tokens <= MAX_CHUNK_TOKENS:
-        return [chunk]
-
-    chunker = _get_recursive_chunker()
-    sub_chunks = chunker.chunk(chunk.content)
-
-    if len(sub_chunks) <= 1:
-        return [chunk]
-
-    result = []
-    for i, sub in enumerate(sub_chunks):
-        # Generate new ID for each sub-chunk
-        new_id = _generate_chunk_id(
-            chunk.file_path,
-            chunk.heading,
-            sub.text,
-            i
-        )
-        result.append(Chunk(
-            id=new_id,
-            content=sub.text,
-            file_path=chunk.file_path,
-            heading=chunk.heading,
-            heading_level=chunk.heading_level,
-            metadata={**chunk.metadata, "split_index": i}
-        ))
-
-    return result
-
-
-def chunk_by_heading(content: str, file_path: str, min_chunk_size: int = 100) -> List[Chunk]:
-    """Split markdown content by headings (## and ###).
-
-    Args:
-        content: Markdown content
-        file_path: Path to the source file
-        min_chunk_size: Minimum characters for a chunk (smaller chunks are merged up)
+        content: Raw markdown content (may include frontmatter)
+        file_path: Relative path to the source file
 
     Returns:
         List of Chunk objects
     """
     frontmatter, body = parse_frontmatter(content)
 
-    # Split by headings (## or ###)
-    heading_pattern = re.compile(r'^(#{2,3})\s+(.+)$', re.MULTILINE)
+    if not body.strip():
+        return []
+
+    chunker = _get_chunker()
+
+    chonkie_chunks = chunker.chunk(body)
+
+    # Determine note type from path
+    note_type = "daily" if file_path.startswith("Daily Notes/") else "note"
 
     chunks = []
-    last_end = 0
-    current_heading = None
-    current_level = 0
-    chunk_index = 0
+    for i, cc in enumerate(chonkie_chunks):
+        text = cc.text.strip()
+        if not text:
+            continue
 
-    for match in heading_pattern.finditer(body):
-        # Get content before this heading
-        chunk_content = body[last_end:match.start()].strip()
+        # Try to extract heading from chunk start
+        heading = None
+        heading_level = 0
+        for line in text.split("\n"):
+            line = line.strip()
+            if line.startswith("#"):
+                level = len(line) - len(line.lstrip("#"))
+                if 1 <= level <= 6 and len(line) > level and line[level] == " ":
+                    heading = line[level:].strip()
+                    heading_level = level
+                break
 
-        if chunk_content and len(chunk_content) >= min_chunk_size:
-            chunk_id = _generate_chunk_id(file_path, current_heading, chunk_content, chunk_index)
-            chunks.append(Chunk(
-                id=chunk_id,
-                content=chunk_content,
-                file_path=file_path,
-                heading=current_heading,
-                heading_level=current_level,
-                metadata={**frontmatter, "file_path": file_path}
-            ))
-            chunk_index += 1
-        elif chunk_content and chunks:
-            # Merge small chunk with previous
-            chunks[-1].content += "\n\n" + chunk_content
+        chunk_id = _generate_chunk_id(file_path, heading, text, i)
+        meta = {**frontmatter, "type": note_type, "file_path": file_path}
 
-        # Update for next iteration
-        current_level = len(match.group(1))
-        current_heading = match.group(2).strip()
-        last_end = match.end()
-
-    # Don't forget the last chunk
-    chunk_content = body[last_end:].strip()
-    if chunk_content:
-        chunk_id = _generate_chunk_id(file_path, current_heading, chunk_content, chunk_index)
         chunks.append(Chunk(
             id=chunk_id,
-            content=chunk_content,
+            content=text,
             file_path=file_path,
-            heading=current_heading,
-            heading_level=current_level,
-            metadata={**frontmatter, "file_path": file_path}
-        ))
-        chunk_index += 1
-
-    # If no headings found, treat entire content as one chunk
-    if not chunks and body.strip():
-        chunk_id = _generate_chunk_id(file_path, None, body, 0)
-        chunks.append(Chunk(
-            id=chunk_id,
-            content=body.strip(),
-            file_path=file_path,
-            heading=None,
-            heading_level=0,
-            metadata={**frontmatter, "file_path": file_path}
+            heading=heading,
+            heading_level=heading_level,
+            metadata=meta,
         ))
 
-    # Split any oversized chunks using Chonkie
-    final_chunks = []
-    for chunk in chunks:
-        final_chunks.extend(split_oversized_chunk(chunk))
-
-    return final_chunks
+    return chunks
 
 
 def _generate_chunk_id(file_path: str, heading: Optional[str], content: str, chunk_index: int = 0) -> str:
@@ -522,16 +453,10 @@ class VaultIndexer:
         content = file_path.read_text(encoding="utf-8")
         rel_path = str(file_path.relative_to(self.vault_path))
 
-        chunks = chunk_by_heading(content, rel_path)
+        chunks = chunk_markdown(content, rel_path)
 
         results = []
         for chunk in chunks:
-            # Add file type metadata
-            if rel_path.startswith("Daily Notes/"):
-                chunk.metadata["type"] = "daily"
-            else:
-                chunk.metadata["type"] = "note"
-
             embedding = self.embedder.embed(chunk.content)
             results.append((chunk, embedding))
 
