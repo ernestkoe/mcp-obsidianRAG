@@ -159,7 +159,17 @@ The setup wizard writes to `~/.config/obsidian-notes-rag/config.toml`. You can a
 4. Stores metadata in SQLite, vectors in sqlite-vec (KNN search via vec0 virtual tables)
 5. MCP server and CLI both query the same local database
 
-## Upgrading to v1.0.0
+## Upgrading
+
+If you installed the CLI with `uv tool install`, upgrade with:
+
+```bash
+uv tool upgrade obsidian-notes-rag
+```
+
+If you use `uvx` to run commands or the MCP server, it automatically uses the latest version.
+
+### Upgrading to v1.0.0
 
 v1.0.0 replaces ChromaDB with sqlite-vec. After upgrading, rebuild your index:
 
