@@ -1,6 +1,57 @@
 # CHANGELOG
 
 
+## v1.0.0 (2026-02-15)
+
+### Features
+
+- Replace ChromaDB with sqlite-vec, extend CLI
+  ([#10](https://github.com/ernestkoe/obsidian-notes-rag/pull/10),
+  [`e0bc157`](https://github.com/ernestkoe/obsidian-notes-rag/commit/e0bc157938689756d155005c32d8ba30e44760b8))
+
+* feat: add obsidian-rag as shorter CLI alias
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+* feat: add --path-filter option to index command
+
+* feat: add similar command to CLI
+
+* feat: add context command to CLI
+
+* test: add VectorStore contract tests for sqlite-vec migration
+
+* docs: add sqlite-vec + Chonkie migration implementation plan
+
+* feat: replace ChromaDB with sqlite-vec vector store
+
+* feat: replace custom chunker with Chonkie RecursiveChunker
+
+Uses the built-in markdown recipe which splits by heading levels, then paragraphs, then lines, then
+  sentences.
+
+* build: replace chromadb dependency with sqlite-vec
+
+Removes chromadb and its heavy transitive dependencies (fastapi, grpc, opentelemetry, posthog
+  telemetry). Defines markdown chunking rules inline to avoid huggingface_hub dependency that was
+  previously pulled in by chromadb.
+
+* docs: update CLAUDE.md for sqlite-vec and Chonkie migration
+
+* fix: use direct lookup for similar and context note retrieval
+
+The similar and context commands were failing because they embedded the file path string as a vector
+  query then filtered by file_path. With sqlite-vec's post-filter KNN, the target file was rarely in
+  the top-k results. Added get_by_file() for direct SQL lookup on the indexed file_path column - no
+  vector search needed.
+
+* docs: add CLI extension design doc
+
+---------
+
+Co-authored-by: Claude Opus 4.6 <noreply@anthropic.com>
+
+
 ## v0.4.3 (2026-02-01)
 
 ### Bug Fixes
